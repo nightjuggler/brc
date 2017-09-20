@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>BRC Location</title>
+<style>
+body,html {
+	font-family: verdana;
+	font-size: 10pt;
+	height: 100%;
+	margin: 0;
+	padding: 0;
+}
+input {
+	font-size: 10pt;
+	text-align: right;
+}
+#map {
+	height: 100%;
+}
+#brcLoc {
+	position: absolute;
+	bottom: 54px;
+	right: 48px;
+}
+#llText {
+	position: absolute;
+	bottom: 24px;
+	right: 48px;
+}
+</style>
+<script src="https://geographiclib.sourceforge.io/scripts/geographiclib.js"></script>
+<script src="brc.js"></script>
+<script>
+"use strict";
+function isValidId(s, n)
+{
+	return s.length <= n && s.match(/^[a-z][_0-9a-z]*$/) !== null;
+}
+function parseLL(q, v, latIndex, lngIndex)
+{
+	var m = v.match(/^(-?[0-9]{1,3}(?:\.[0-9]{1,8})?),(-?[0-9]{1,3}(?:\.[0-9]{1,8})?)$/);
+
+	if (m === null) return;
+
+	var lat = parseFloat(m[latIndex]);
+	if (lat < -90 || lat > 90) return;
+
+	var lng = parseFloat(m[lngIndex]);
+	if (lng < -180 || lng > 180) return;
+
+	q.ll = {lat: lat, lng: lng};
+}
+function parseLatLng(q, v) { parseLL(q, v, 1, 2); }
+function parseLngLat(q, v) { parseLL(q, v, 2, 1); }
+function parseZoom(q, v)
+{
+	if (v.match(/^[1-9][0-9]?$/) === null) return;
+
+	var zoom = parseInt(v);
+	if (zoom < 1 || zoom > 22) return;
+
+	q.zoom = zoom;
+}
+function parseYear(q, v)
+{
+	if (v.match(/^20[0-9][0-9]$/) === null) return;
+
+	BRC.setMeasurements(v);
+}
+function parseBRCLocation(q, v)
+{
+	var ll = BRC.getLatLongFromLocation(v);
+	if (ll)
+		q.ll = {lat: ll.latitude, lng: ll.longitude};
+}
+function parseQueryString(queryString)
+{
+	var q = window.location.search;
+
+	if (typeof q !== 'string' || q.charAt(0) !== '?') return;
+
+	var flags = {
+	};
+	var handlers = {
+		loc: parseBRCLocation,
+		ll: parseLatLng,
+		xy: parseLngLat,
+		y: parseYear,
+		z: parseZoom,
+	};
+
+	for (var s of q.substr(1).split('&'))
+	{
+		var i = s.indexOf('=');
+		if (i < 0 && isValidId(s, 3) && flags[s]) {
+			queryString[flags[s]] = true;
+			continue;
+		}
+		if (i < 1 || i === s.length - 1) continue;
+		var k = s.substr(0, i);
+		var v = s.substr(i + 1);
+
+		if (isValidId(k, 3) && handlers[k])
+			handlers[k](queryString, v);
+	}
+}
+function init()
+{
+	var queryString = {
+		zoom: 20
+	};
+	parseQueryString(queryString);
+
+	var currentLL = BRC.getManCenter().copy();
+	var brcLoc = document.getElementById("brcLoc").firstChild;
+	var llText = document.getElementById("llText").firstChild;
+
+	var options = {};
+	options.center = queryString.ll || {lat: currentLL.latitude, lng: currentLL.longitude};
+	options.disableDoubleClickZoom = true;
+	options.mapTypeId = google.maps.MapTypeId.SATELLITE;
+	options.scrollwheel = false;
+	options.zoom = queryString.zoom;
+
+	var map = new google.maps.Map(document.getElementById("map"), options);
+	map.addListener('center_changed', mapCenterChanged);
+
+	var centerMarker = new google.maps.Marker({
+		clickable: false,
+		icon: {
+			anchor: new google.maps.Point(14, 14),
+			size: new google.maps.Size(28, 28),
+			url: 'centerIcon.svg'
+		},
+		map: map,
+		position: options.center
+	});
+
+	function mapCenterChanged()
+	{
+		var ll = map.getCenter();
+		centerMarker.setPosition(ll);
+		currentLL.latitude = ll.lat();
+		currentLL.longitude = ll.lng();
+		llText.value = ll.toUrlValue();
+		brcLoc.value = currentLL.location = BRC.getLocationFromLatLong(currentLL);
+		brcLoc.size = brcLoc.value.length > 20 ? 30 : 20;
+	}
+	mapCenterChanged();
+
+	brcLoc.addEventListener("change", function() {
+		var o = {};
+		parseBRCLocation(o, brcLoc.value);
+		if (o.ll)
+			map.setCenter(o.ll);
+		else
+			brcLoc.value = currentLL.location;
+	}, false);
+	llText.addEventListener("change", function() {
+		var o = {};
+		parseLatLng(o, llText.value);
+		if (o.ll)
+			map.setCenter(o.ll);
+		else
+			llText.value = map.getCenter().toUrlValue();
+	}, false);
+}
+</script>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="brcLoc"><input type="text" size="20" value="" /></div>
+<div id="llText"><input type="text" size="20" value="" /></div>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCQnfgklY64ksLr_JJKE0MdWCPgo0trTZc&callback=init" async defer></script>
+
+</body>
+</html>
