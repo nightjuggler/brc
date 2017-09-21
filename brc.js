@@ -8,58 +8,12 @@ var degreesPerRadian = 180.0 / Math.PI;
 var secondsPerDegree = 12 * 60 * 60 / 360;
 
 var defaultYear = '2013';
-var Measurements, ManCenter, TwelveOClockNormal;
+var Measurements, ManCenter, TwelveOClockAzimuth;
 
-function Vector(x, y, z)
-{
-	this.update(x, y, z);
-}
-Vector.prototype.update = function(x, y, z)
-{
-	this.x = x;
-	this.y = y;
-	this.z = z;
-	this.cachedMagnitude = undefined;
-}
-Vector.prototype.dot = function(b)
-{
-	return this.x * b.x + this.y * b.y + this.z * b.z;
-}
-Vector.prototype.cross = function(b)
-{
-	return new Vector(
-		this.y * b.z - this.z * b.y,
-		this.z * b.x - this.x * b.z,
-		this.x * b.y - this.y * b.x);
-}
-Vector.prototype.magnitude = function()
-{
-	if (this.cachedMagnitude === undefined)
-		this.cachedMagnitude = Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
-
-	return this.cachedMagnitude;
-}
-Vector.prototype.angle = function(b)
-{
-	var cosAngle = this.dot(b) / (this.magnitude() * b.magnitude());
-
-	if (cosAngle > 1) {
-		if (cosAngle - 1 > 1e-14) return null;
-		cosAngle = 1.0;
-	} else if (cosAngle < -1) {
-		if (-cosAngle - 1 > 1e-14) return null;
-		cosAngle = -1.0;
-	}
-
-	return Math.acos(cosAngle) * degreesPerRadian;
-}
 function LatLong(latitude, longitude)
 {
 	this.latitude = latitude;
 	this.longitude = longitude;
-
-	this.vector = new Vector(0, 0, 0);
-	this.updateVector();
 }
 LatLong.prototype.copy = function()
 {
@@ -69,16 +23,6 @@ LatLong.prototype.equals = function(latLong)
 {
 	return Math.abs(this.latitude - latLong.latitude) < 1e-13 &&
 		Math.abs(this.longitude - latLong.longitude) < 1e-13;
-}
-LatLong.prototype.updateVector = function()
-{
-	var latitude = this.latitude * radiansPerDegree;
-	var longitude = this.longitude * radiansPerDegree;
-
-	var c = Math.cos(latitude);
-	var s = Math.sin(latitude);
-
-	this.vector.update(c * Math.cos(longitude), s, c * Math.sin(longitude));
 }
 var MeasurementsByYear = {
 	'2013': {
@@ -188,51 +132,32 @@ function setMeasurements(year)
 
 	Measurements = m;
 	ManCenter = m.ManCenter;
-	TwelveOClockNormal = ManCenter.vector.cross(m.PentagonPoint3.vector);
 
-	m.rotationAngle = getRotationAngle();
+	var P3 = m.PentagonPoint3;
+	var result = geo.Inverse(ManCenter.latitude, ManCenter.longitude, P3.latitude, P3.longitude);
+	TwelveOClockAzimuth = result.azi1;
+
 	setCachedDistances(m);
 	return m;
 }
-function getRotationAngle()
+function getTimeForAngle(degrees, precision)
 {
-	var north = new LatLong(90, ManCenter.longitude);
-
-	var normal = ManCenter.vector.cross(north.vector);
-
-	var degrees = TwelveOClockNormal.angle(normal);
-
-	if (TwelveOClockNormal.dot(north.vector) > 1e-14)
-		degrees = 360 - degrees;
-
-	return degrees;
-}
-function getTimeForAngle(degrees)
-{
-	var t = Math.round(degrees * secondsPerDegree);
+	var p = Math.pow(10, precision);
+	var t = Math.round(degrees * secondsPerDegree * p) / p;
 
 	var seconds = t % 60; t = (t - seconds) / 60;
 	var minutes = t % 60; t = (t - minutes) / 60;
 
 	if (t === 0) t = 12;
 
-	seconds = seconds < 10 ? (seconds === 0 ? '' : ':0' + seconds) : ':' + seconds;
+	var s = seconds.toFixed(precision);
+	if (precision > 0)
+		s = s.replace(/\.?0+$/, "");
+
+	seconds = seconds < 10 ? (seconds === 0 ? '' : ':0' + s) : ':' + s;
 	minutes = minutes < 10 ? (minutes === 0 ? ':00' : ':0' + minutes) : ':' + minutes;
 
 	return t + minutes + seconds;
-}
-function getAngleForLatLong(latLong)
-{
-	var normal = ManCenter.vector.cross(latLong.vector);
-
-	var degrees = TwelveOClockNormal.angle(normal);
-
-	latLong.acuteAngle = degrees;
-
-	if (TwelveOClockNormal.dot(latLong.vector) < -1e-14)
-		degrees = 360 - degrees;
-
-	return degrees;
 }
 function getStreetFromDistanceAndAngle(d, angle)
 {
@@ -261,7 +186,7 @@ function getStreetFromDistanceAndAngle(d, angle)
 			if (block === 'F' &&
 				(angle > 150 ||
 				(angle > 105 && angle < 120) ||
-				(angle >= 60 && angle < 75)))
+				(angle >= 59 && angle < 75)))
 			{
 				if (side === 0) {
 					block = 'E';
@@ -281,31 +206,32 @@ function getStreetFromDistanceAndAngle(d, angle)
 
 	return dStr;
 }
-function getDistanceForLatLong(latLong)
-{
-	var result = geo.Inverse(ManCenter.latitude, ManCenter.longitude,
-		latLong.latitude, latLong.longitude);
-
-	var d = result.s12 / 0.3048; // Convert from meters to feet
-
-	if (d < 10000)
-		return getStreetFromDistanceAndAngle(d, latLong.acuteAngle);
-
-	if ((d /= 5280) < 30)
-		return d.toFixed(1) + "mi";
-
-	return Math.round(d) + "mi";
-}
 function getLocationFromLatLong(latLong)
 {
 	if (latLong.equals(ManCenter))
 		return "Center of the Man";
 
-	latLong.updateVector();
+	var result = geo.Inverse(ManCenter.latitude, ManCenter.longitude,
+		latLong.latitude, latLong.longitude);
 
-	var t = getTimeForAngle(getAngleForLatLong(latLong));
-	var d = getDistanceForLatLong(latLong);
+	var angle = result.azi1;
+	if (angle < 0)
+		angle += 360;
+	angle -= TwelveOClockAzimuth;
+	if (angle < 0)
+		angle += 360;
 
+	var t;
+	var d = result.s12 / 0.3048; // Convert from meters to feet
+
+	if (d < 10000) {
+		t = getTimeForAngle(angle, 0);
+		d = getStreetFromDistanceAndAngle(d, angle > 180 ? 360 - angle : angle);
+	} else {
+		t = getTimeForAngle(angle, 3);
+		d /= 5280;
+		d = d.toFixed(3).replace(/\.?0+$/, "") + "mi";
+	}
 	return t + ' & ' + d;
 }
 function getLatLongFromLocation(location)
@@ -320,7 +246,7 @@ function getLatLongFromLocation(location)
 	else if (location === "CENTERCAMP")
 		location = "6&A";
 
-	var m = location.match(/^([1-9][012]?(:[0-9][0-9](:[0-9][0-9])?)?)&/);
+	var m = location.match(/^([1-9][012]?(:[0-9][0-9](:[0-9][0-9](\.[0-9]{1,3})?)?)?)&/);
 	if (!m) return null;
 
 	var hrsMinSec = m[1].split(':');
@@ -335,16 +261,14 @@ function getLatLongFromLocation(location)
 		minutes = parseInt(hrsMinSec[1], 10);
 		if (minutes > 59) return null;
 		if (hrsMinSec.length > 2) {
-			seconds = parseInt(hrsMinSec[2], 10);
-			if (seconds > 59) return null;
+			seconds = parseFloat(hrsMinSec[2]);
+			if (seconds >= 60) return null;
 		}
 	}
 
 	var degrees = (hours * 3600 + minutes * 60 + seconds) / secondsPerDegree;
 
-	degrees = (degrees + Measurements.rotationAngle) % 360;
-
-	degrees += 0.108 * Math.sin(2 * degrees * radiansPerDegree); // Why?
+	degrees = (degrees + TwelveOClockAzimuth) % 360;
 
 	location = location.slice(m[0].length);
 
@@ -362,7 +286,7 @@ function getLatLongFromLocation(location)
 	{
 		feet = parseInt(location.slice(0, -2), 10);
 	}
-	else if (location.match(/^[1-9][0-9]*(\.[0-9])?MI$/))
+	else if (location.match(/^[1-9][0-9]*(\.[0-9]{1,3})?MI$/))
 	{
 		feet = parseFloat(location.slice(0, -2), 10) * 5280;
 	}
