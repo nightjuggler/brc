@@ -288,7 +288,7 @@ function getLatLongFromLocation(location)
 	}
 	else if (location.match(/^[1-9][0-9]*(\.[0-9]{1,3})?MI$/))
 	{
-		feet = parseFloat(location.slice(0, -2), 10) * 5280;
+		feet = parseFloat(location.slice(0, -2)) * 5280;
 	}
 	else return null;
 
