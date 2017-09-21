@@ -17,5 +17,6 @@ The location can also be specified in the URL. For example:
 * [https://nightjuggler.com/brc/map.html?loc=12+2400ft](https://nightjuggler.com/brc/map.html?loc=12+2400ft)
 * [https://nightjuggler.com/brc/map.html?loc=3:17+K](https://nightjuggler.com/brc/map.html?loc=3:17+K)
 * [https://nightjuggler.com/brc/map.html?loc=2+Esplanade](https://nightjuggler.com/brc/map.html?loc=2+Esplanade)
-* [https://nightjuggler.com/brc/map.html?loc=5:40:33+280mi](https://nightjuggler.com/brc/map.html?loc=5:40:33+280mi)
+* [https://nightjuggler.com/brc/map.html?loc=5:40:33.8+280.16mi](https://nightjuggler.com/brc/map.html?loc=5:40:33.8+280.16mi)
+* [https://nightjuggler.com/brc/map.html?loc=6:35:47.9+7665.185mi&z=18](https://nightjuggler.com/brc/map.html?loc=6:35:47.9+7665.185mi&z=18)
 
