@@ -39,7 +39,9 @@ var MeasurementsByYear = {
 		J_BlockWidth: 210,
 
 		ManCenter: new LatLong(40.78699,-119.20433),
-		PentagonPoint3: new LatLong(40.80276,-119.18348),
+		Pentagon: [
+			new LatLong(40.80276,-119.18348), // Point 3
+		]
 	},
 	'2014': {
 		// http://innovate.burningman.org/dataset/2014-golden-spike-location/
@@ -49,11 +51,13 @@ var MeasurementsByYear = {
 		BlockWidth: 200,
 
 		ManCenter: new LatLong(40.78880,-119.20315),
-		PentagonPoint1: new LatLong(40.78542,-119.23241),
-		PentagonPoint2: new LatLong(40.80875,-119.21665),
-		PentagonPoint3: new LatLong(40.80464,-119.18240),
-		PentagonPoint4: new LatLong(40.77869,-119.17687),
-		PentagonPoint5: new LatLong(40.76678,-119.20772)
+		Pentagon: [
+			new LatLong(40.80464,-119.18240), // Point 3
+			new LatLong(40.77869,-119.17687), // Point 4
+			new LatLong(40.76678,-119.20772), // Point 5
+			new LatLong(40.78542,-119.23241), // Point 1
+			new LatLong(40.80875,-119.21665), // Point 2
+		]
 	},
 	'2015': {
 		// http://innovate.burningman.org/dataset/2015-golden-spike-location/
@@ -63,11 +67,13 @@ var MeasurementsByYear = {
 		BlockWidth: 200,
 
 		ManCenter: new LatLong(40.78640,-119.20650),
-		PentagonPoint1: new LatLong(40.78300,-119.23570),
-		PentagonPoint2: new LatLong(40.80630,-119.21990),
-		PentagonPoint3: new LatLong(40.80220,-119.18570),
-		PentagonPoint4: new LatLong(40.77620,-119.18020),
-		PentagonPoint5: new LatLong(40.76440,-119.21110)
+		Pentagon: [
+			new LatLong(40.80220,-119.18570),
+			new LatLong(40.77620,-119.18020),
+			new LatLong(40.76440,-119.21110),
+			new LatLong(40.78300,-119.23570),
+			new LatLong(40.80630,-119.21990),
+		]
 	},
 	'2016': {
 		// http://innovate.burningman.org/dataset/2016-golden-spike-and-general-city-map-data/
@@ -77,11 +83,13 @@ var MeasurementsByYear = {
 		BlockWidth: 200,
 
 		ManCenter: new LatLong(40.78640,-119.20650),
-		PentagonPoint1: new LatLong(40.78300,-119.23570),
-		PentagonPoint2: new LatLong(40.80630,-119.21990),
-		PentagonPoint3: new LatLong(40.80220,-119.18570),
-		PentagonPoint4: new LatLong(40.77620,-119.18020),
-		PentagonPoint5: new LatLong(40.76440,-119.21110)
+		Pentagon: [
+			new LatLong(40.80220,-119.18570),
+			new LatLong(40.77620,-119.18020),
+			new LatLong(40.76440,-119.21110),
+			new LatLong(40.78300,-119.23570),
+			new LatLong(40.80630,-119.21990),
+		]
 	},
 	'2017': {
 		// http://innovate.burningman.org/dataset/2017-golden-spike-and-general-city-map-data/
@@ -91,13 +99,39 @@ var MeasurementsByYear = {
 		BlockWidth: 200,
 
 		ManCenter: new LatLong(40.78660,-119.20660),
-		PentagonPoint1: new LatLong(40.78306,-119.23568),
-		PentagonPoint2: new LatLong(40.80652,-119.22006),
-		PentagonPoint3: new LatLong(40.80247,-119.18581),
-		PentagonPoint4: new LatLong(40.77657,-119.18026),
-		PentagonPoint5: new LatLong(40.76448,-119.21119)
+		Pentagon: [
+			new LatLong(40.80247,-119.18581),
+			new LatLong(40.77657,-119.18026),
+			new LatLong(40.76448,-119.21119),
+			new LatLong(40.78306,-119.23568),
+			new LatLong(40.80652,-119.22006),
+		]
 	}
 };
+function generatePentagon(pentagon)
+{
+	var meters, degrees;
+
+	if (pentagon.length === 0) {
+		TwelveOClockAzimuth = 45;
+		meters = 8145 * 0.3048;
+		degrees = 0;
+	} else {
+		var TwelveOClock = pentagon[0];
+		var result = geo.Inverse(ManCenter.latitude, ManCenter.longitude,
+			TwelveOClock.latitude, TwelveOClock.longitude);
+
+		TwelveOClockAzimuth = result.azi1;
+		meters = result.s12;
+		degrees = 72 * pentagon.length;
+	}
+	for (; degrees < 360; degrees += 72)
+	{
+		var result = geo.Direct(ManCenter.latitude, ManCenter.longitude,
+			(degrees + TwelveOClockAzimuth) % 360, meters);
+		pentagon.push(new LatLong(result.lat2, result.lon2));
+	}
+}
 function setCachedDistances(m)
 {
 	var letters = m.letters = 'ABCDEFGHIJKL';
@@ -133,11 +167,9 @@ function setMeasurements(year)
 	Measurements = m;
 	ManCenter = m.ManCenter;
 
-	var P3 = m.PentagonPoint3;
-	var result = geo.Inverse(ManCenter.latitude, ManCenter.longitude, P3.latitude, P3.longitude);
-	TwelveOClockAzimuth = result.azi1;
-
+	generatePentagon(m.Pentagon);
 	setCachedDistances(m);
+
 	return m;
 }
 function getTimeForAngle(degrees, precision)
@@ -303,7 +335,9 @@ setMeasurements(defaultYear);
 return {
 	getLatLongFromLocation: getLatLongFromLocation,
 	getLocationFromLatLong: getLocationFromLatLong,
+
 	getManCenter: function() { return ManCenter; },
+	getMeasurements: function() { return Measurements; },
 	setMeasurements: setMeasurements,
 };
 

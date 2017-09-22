@@ -82,6 +82,7 @@ function parseQueryString(queryString)
 	if (typeof q !== 'string' || q.charAt(0) !== '?') return;
 
 	var flags = {
+		pgn: 'addPentagon',
 	};
 	var handlers = {
 		loc: parseBRCLocation,
@@ -105,6 +106,22 @@ function parseQueryString(queryString)
 		if (isValidId(k, 3) && handlers[k])
 			handlers[k](queryString, v);
 	}
+}
+function addPentagon(map, pentagon)
+{
+	var llArray = [];
+
+	for (var ll of pentagon)
+		llArray.push({lat: ll.latitude, lng: ll.longitude});
+
+	new google.maps.Polygon({
+		map: map,
+		paths: llArray,
+		strokeColor: "#FF0000",
+		strokeOpacity: 0.8,
+		strokeWeight: 2,
+		fillOpacity: 0,
+	});
 }
 function init()
 {
@@ -137,6 +154,9 @@ function init()
 		map: map,
 		position: options.center
 	});
+
+	if (queryString.addPentagon)
+		addPentagon(map, BRC.getMeasurements().Pentagon);
 
 	function mapCenterChanged()
 	{
