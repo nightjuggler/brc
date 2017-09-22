@@ -24,6 +24,10 @@ LatLong.prototype.equals = function(latLong)
 	return Math.abs(this.latitude - latLong.latitude) < 1e-13 &&
 		Math.abs(this.longitude - latLong.longitude) < 1e-13;
 }
+LatLong.prototype.toGoogle = function()
+{
+	return new google.maps.LatLng(this.latitude, this.longitude);
+}
 var MeasurementsByYear = {
 	'2013': {
 		ManToEsplanade: 2410, // Distance in feet from the center of the Man to the center of Esplanade

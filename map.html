@@ -50,7 +50,7 @@ function parseLL(q, v, latIndex, lngIndex)
 	var lng = parseFloat(m[lngIndex]);
 	if (lng < -180 || lng > 180) return;
 
-	q.ll = {lat: lat, lng: lng};
+	q.ll = new google.maps.LatLng(lat, lng);
 }
 function parseLatLng(q, v) { parseLL(q, v, 1, 2); }
 function parseLngLat(q, v) { parseLL(q, v, 2, 1); }
@@ -73,7 +73,7 @@ function parseBRCLocation(q, v)
 {
 	var ll = BRC.getLatLongFromLocation(v);
 	if (ll)
-		q.ll = {lat: ll.latitude, lng: ll.longitude};
+		q.ll = ll.toGoogle();
 }
 function parseQueryString(queryString)
 {
@@ -112,7 +112,7 @@ function addPentagon(map, pentagon)
 	var llArray = [];
 
 	for (var ll of pentagon)
-		llArray.push({lat: ll.latitude, lng: ll.longitude});
+		llArray.push(ll.toGoogle());
 
 	new google.maps.Polygon({
 		map: map,
@@ -135,7 +135,7 @@ function init()
 	var llText = document.getElementById("llText").firstChild;
 
 	var options = {};
-	options.center = queryString.ll || {lat: currentLL.latitude, lng: currentLL.longitude};
+	options.center = queryString.ll || currentLL.toGoogle();
 	options.disableDoubleClickZoom = true;
 	options.mapTypeId = google.maps.MapTypeId.SATELLITE;
 	options.scrollwheel = false;
