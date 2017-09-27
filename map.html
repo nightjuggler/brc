@@ -125,12 +125,12 @@ function addPentagon(map, pentagon)
 }
 function init()
 {
-	var queryString = {
-		zoom: 20
-	};
+	BRC.init();
+
+	var queryString = {};
 	parseQueryString(queryString);
 
-	var currentLL = BRC.getManCenter().copy();
+	var currentLL = BRC.getMeasurements().ManCenter.copy();
 	var brcLoc = document.getElementById("brcLoc").firstChild;
 	var llText = document.getElementById("llText").firstChild;
 
@@ -139,7 +139,7 @@ function init()
 	options.disableDoubleClickZoom = true;
 	options.mapTypeId = google.maps.MapTypeId.SATELLITE;
 	options.scrollwheel = false;
-	options.zoom = queryString.zoom;
+	options.zoom = queryString.zoom || 20;
 
 	var map = new google.maps.Map(document.getElementById("map"), options);
 	map.addListener('center_changed', mapCenterChanged);
@@ -194,7 +194,7 @@ function init()
 <div id="map"></div>
 <div id="brcLoc"><input type="text" size="20" value="" /></div>
 <div id="llText"><input type="text" size="20" value="" /></div>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCQnfgklY64ksLr_JJKE0MdWCPgo0trTZc&callback=init" async defer></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCQnfgklY64ksLr_JJKE0MdWCPgo0trTZc&libraries=geometry&callback=init" async defer></script>
 
 </body>
 </html>

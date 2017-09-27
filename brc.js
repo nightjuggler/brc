@@ -1,14 +1,16 @@
 "use strict";
+var GeographicLib;
+var google;
+
 var BRC = (function() {
 
-var geo = GeographicLib.Geodesic.WGS84;
+var GeoAPI;
+var ManCenter;
+var Measurements;
+var TwelveOClockAzimuth;
 
-var radiansPerDegree = Math.PI / 180.0;
-var degreesPerRadian = 180.0 / Math.PI;
-var secondsPerDegree = 12 * 60 * 60 / 360;
-
-var defaultYear = '2013';
-var Measurements, ManCenter, TwelveOClockAzimuth;
+var DefaultYear = 2013;
+var SecondsPerDegree = 12 * 60 * 60 / 360;
 
 function LatLong(latitude, longitude)
 {
@@ -114,26 +116,19 @@ var MeasurementsByYear = {
 };
 function generatePentagon(pentagon)
 {
-	var meters, degrees;
+	var meters;
 
 	if (pentagon.length === 0) {
 		TwelveOClockAzimuth = 45;
 		meters = 8145 * 0.3048;
-		degrees = 0;
 	} else {
-		var TwelveOClock = pentagon[0];
-		var result = geo.Inverse(ManCenter.latitude, ManCenter.longitude,
-			TwelveOClock.latitude, TwelveOClock.longitude);
-
+		var result = GeoAPI.Inverse(pentagon[0]);
 		TwelveOClockAzimuth = result.azi1;
 		meters = result.s12;
-		degrees = 72 * pentagon.length;
 	}
-	for (; degrees < 360; degrees += 72)
+	for (var degrees = 72 * pentagon.length; degrees < 360; degrees += 72)
 	{
-		var result = geo.Direct(ManCenter.latitude, ManCenter.longitude,
-			(degrees + TwelveOClockAzimuth) % 360, meters);
-		pentagon.push(new LatLong(result.lat2, result.lon2));
+		pentagon.push(GeoAPI.Direct((degrees + TwelveOClockAzimuth) % 360, meters));
 	}
 }
 function setCachedDistances(m)
@@ -165,11 +160,12 @@ function setCachedDistances(m)
 }
 function setMeasurements(year)
 {
-	var m = MeasurementsByYear[year];
+	var m = MeasurementsByYear[year.toString()];
 	if (!m) return null;
 
 	Measurements = m;
 	ManCenter = m.ManCenter;
+	GeoAPI.ManCenterChanged();
 
 	generatePentagon(m.Pentagon);
 	setCachedDistances(m);
@@ -179,7 +175,7 @@ function setMeasurements(year)
 function getTimeForAngle(degrees, precision)
 {
 	var p = Math.pow(10, precision);
-	var t = Math.round(degrees * secondsPerDegree * p) / p;
+	var t = Math.round(degrees * SecondsPerDegree * p) / p;
 
 	var seconds = t % 60; t = (t - seconds) / 60;
 	var minutes = t % 60; t = (t - minutes) / 60;
@@ -247,8 +243,7 @@ function getLocationFromLatLong(latLong)
 	if (latLong.equals(ManCenter))
 		return "Center of the Man";
 
-	var result = geo.Inverse(ManCenter.latitude, ManCenter.longitude,
-		latLong.latitude, latLong.longitude);
+	var result = GeoAPI.Inverse(latLong);
 
 	var angle = result.azi1;
 	if (angle < 0)
@@ -302,7 +297,7 @@ function getLatLongFromLocation(location)
 		}
 	}
 
-	var degrees = (hours * 3600 + minutes * 60 + seconds) / secondsPerDegree;
+	var degrees = (hours * 3600 + minutes * 60 + seconds) / SecondsPerDegree;
 
 	degrees = (degrees + TwelveOClockAzimuth) % 360;
 
@@ -328,21 +323,64 @@ function getLatLongFromLocation(location)
 	}
 	else return null;
 
-	var meters = feet * 0.3048;
-	var result = geo.Direct(ManCenter.latitude, ManCenter.longitude, degrees, meters);
-
-	return new LatLong(result.lat2, result.lon2);
+	return GeoAPI.Direct(degrees, feet * 0.3048);
 }
+function useGeographicLib()
+{
+	var geo = GeographicLib.Geodesic.WGS84;
+	GeoAPI = {
+		Direct: function(degrees, meters)
+		{
+			var result = geo.Direct(ManCenter.latitude, ManCenter.longitude, degrees, meters);
+			return new LatLong(result.lat2, result.lon2);
+		},
+		Inverse: function(latLong)
+		{
+			return geo.Inverse(ManCenter.latitude, ManCenter.longitude,
+				latLong.latitude, latLong.longitude);
+		},
+		ManCenterChanged: function() {},
+	};
+}
+function useGoogle()
+{
+	var geo = google.maps.geometry.spherical;
+	var ManCenterGoogle;
+	GeoAPI = {
+		Direct: function(degrees, meters)
+		{
+			var ll = geo.computeOffset(ManCenterGoogle, meters, degrees);
+			return new LatLong(ll.lat(), ll.lng());
+		},
+		Inverse: function(latLong)
+		{
+			var ll = latLong.toGoogle();
+			return {
+				azi1: geo.computeHeading(ManCenterGoogle, ll),
+				s12: geo.computeDistanceBetween(ManCenterGoogle, ll),
+			};
+		},
+		ManCenterChanged: function()
+		{
+			ManCenterGoogle = ManCenter.toGoogle();
+		},
+	};
+}
+function init()
+{
+	if (GeographicLib)
+		useGeographicLib();
+	else if (google)
+		useGoogle();
 
-setMeasurements(defaultYear);
-
+	return setMeasurements(DefaultYear);
+}
 return {
+	init: init,
 	getLatLongFromLocation: getLatLongFromLocation,
 	getLocationFromLatLong: getLocationFromLatLong,
 
-	getManCenter: function() { return ManCenter; },
 	getMeasurements: function() { return Measurements; },
 	setMeasurements: setMeasurements,
 };
-
 })();
