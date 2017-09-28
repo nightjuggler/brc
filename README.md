@@ -24,3 +24,9 @@ You can also specify the year (2013-2017), whether to draw the perimeter pentago
 
 * [https://nightjuggler.com/brc/map.html?y=2016&pgn&z=14](https://nightjuggler.com/brc/map.html?y=2016&pgn&z=14)
 
+# gensvg.py
+
+A Python script that outputs SVG for the layout of Black Rock City.
+
+See [https://nightjuggler.com/brc/brc.svg](https://nightjuggler.com/brc/brc.svg)
+
