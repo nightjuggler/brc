@@ -1,6 +1,5 @@
 #!/usr/bin/python
 import math
-import sys
 
 BLOCK_WIDTH = 200
 HALF_STREET_WIDTH = 20
@@ -10,6 +9,7 @@ MAN_TO_ESPLANADE = 2500 # Distance from the center of the Man to the center of E
 ESPLANADE_TO_A = 400    # Width of the block from Esplanade to A
 
 MAN_TO_CENTER_CAMP = 2907
+CENTER_CAMP = (0, MAN_TO_CENTER_CAMP)
 CENTER_CAMP_RADIUS1 = 190
 CENTER_CAMP_RADIUS2 = 330
 CENTER_CAMP_RADIUS3 = (MAN_TO_ESPLANADE + HALF_STREET_WIDTH + ESPLANADE_TO_A
@@ -90,9 +90,15 @@ class Path(object):
 		self.path9 = []
 
 def circleXcircle(r1, c2, r2):
+	#
+	# This returns the points s1 and s2 where the circle with radius r1 centered at the Man
+	# (i.e. at 0, 0) intersects the circle with radius r2 centered at point c2.
+	#
 	x2, y2 = c2
 
-	# See http://2000clicks.com/mathhelp/GeometryConicSectionCircleIntersection.aspx
+	# The below was derived from the general circle-circle intersection formulas derived at
+	# http://2000clicks.com/mathhelp/GeometryConicSectionCircleIntersection.aspx
+	# We can simplify those general formulas here since x1 and y1 are 0.
 
 	dd = x2*x2 + y2*y2
 	k = math.sqrt(((r1 + r2)**2 - dd) * (dd - (r1 - r2)**2))
@@ -111,9 +117,19 @@ def circleXcircle(r1, c2, r2):
 
 	return s1, s2
 
-def circleIntersection(r1, r2):
-#	return circleXcircle(r1, (0, MAN_TO_CENTER_CAMP), r2)[0]
-
+def circleXcircleCC(r1, r2):
+	#
+	# This is a simplified version of circleXcircle for when the second circle is centered
+	# at Center Camp. Thus x2 is 0. It's equivalent to circleXcircle(r1, CENTER_CAMP, r2)[0]
+	#
+	# The equation for y was derived was follows:
+	# (1) Circle centered at the Man: x**2 + y**2 = r1**2
+	# (2) Circle centered at (0, y2): x**2 + (y - y2)**2 = r2**2
+	# (3) Rewrite equation (1) as x**2 = r1**2 - y**2 and substitute the right-hand side
+	#     for x**2 in equation (2): r1**2 - y**2 + (y - y2)**2 = r2**2
+	# (4) Simplify and solve for y: r1**2 - y**2 + y**2 - 2*y*y2 + y2**2 = r2**2
+	#                            => r1**2 - r2**2 + y2**2 = 2*y*y2
+	#                            => y = (r1**2 - r2**2 + y2**2) / (2*y2)
 	y2 = MAN_TO_CENTER_CAMP
 
 	y = float(r1*r1 - r2*r2 + y2*y2) / (2*y2)
@@ -122,18 +138,27 @@ def circleIntersection(r1, r2):
 	return x, y
 
 def lineXcircle(p1, p2, c, r):
+	#
+	# This returns the points s1 and s2 where the line which passes through points p1 and p2
+	# intersects the circle of radius r centered at point c.
+	#
 	x1, y1 = p1
 	x2, y2 = p2
 	cx, cy = c
 
-#	x1, y1 = int(round(x1)), int(round(y1))
-#	x2, y2 = int(round(x2)), int(round(y2))
-#	cx, cy = int(round(cx)), int(round(cy))
-
-#	if x1 == x2:
 	if abs(x2 - x1) < 1e-12:
+
+		# The equation for a vertical line (where x1 == x2) is not of the form y = a + b*x.
+		# It's just x = x1. So, substituting x1 for x in the equation for the circle,
+		# (x - cx)**2 + (y - cy)**2 = r**2, and solving for y, we get the following:
+
 		k = math.sqrt(r*r - (x1 - cx)**2)
 		return (x1, cy + k), (x1, cy - k)
+
+	# The equation for a non-vertical line is y = a + b*x where b is the slope (delta y / delta x)
+	# and a is where the line crosses the y axis. The equation for a circle of radius r centered at
+	# point c is (x - cx)**2 + (y - cy)**2 = r**2. Substituting a + b*x for y in this equation and
+	# solving for x using the quadratic formula, we get the following:
 
 	b = float(y2 - y1) / (x2 - x1)
 	a = y1 - b*x1
@@ -150,23 +175,6 @@ def lineXcircle(p1, p2, c, r):
 	s2 = (x, a + b*x)
 
 	return s1, s2
-
-def lineIntersection(r, p1, p2):
-#	return lineXcircle(p1, p2, (0, MAN_TO_CENTER_CAMP), r)[0]
-
-	cy = MAN_TO_CENTER_CAMP
-	x1, y1 = p1
-	x2, y2 = p2
-
-	b = float(y2 - y1) / (x2 - x1)
-	a = y1 - b*x1
-	d = a - cy
-	bb1 = b*b + 1
-
-	x = (math.sqrt(r*r*bb1 - d*d) - b*d) / bb1
-	y = a + b*x
-
-	return x, y
 
 def flareLine(radius, point, angle):
 	x1, y1 = point
@@ -263,7 +271,7 @@ def addPlaza(plazaHash, points, radii, n, j):
 	plazaHash[k3] = (plazaPath3, z31, z32, PLAZA_RADIUS)
 	plazaHash[k4] = (plazaPath4, z41, z42, PLAZA_RADIUS)
 
-def genPoints():
+def main():
 	radii, threeOClockL, threeOClockR = genThreeOClock()
 
 	points = []
@@ -360,7 +368,7 @@ def genPoints():
 	p1 = (d2, MAN_TO_CENTER_CAMP + hs)
 	p2 = (hs, MAN_TO_CENTER_CAMP + d2)
 	p3 = (hs, MAN_TO_CENTER_CAMP + d3)
-	p4 = circleIntersection(radii[3], r3)
+	p4 = circleXcircleCC(radii[3], r3)
 
 	path.moveto(p1)
 	path.arcto(p2, r2, 1)
@@ -376,7 +384,7 @@ def genPoints():
 	p1 = (r2 * s, MAN_TO_CENTER_CAMP - r2 * c)
 	p4 = (r3 * s, MAN_TO_CENTER_CAMP - r3 * c)
 	p2 = (d2, MAN_TO_CENTER_CAMP - hs)
-	p3 = circleIntersection(radii[2], r3)
+	p3 = circleXcircleCC(radii[2], r3)
 
 	path.moveto(p1)
 	path.arcto(p2, r2, 1)
@@ -392,8 +400,8 @@ def genPoints():
 	rc = CENTER_CAMP_RADIUS3 + STREET_WIDTH
 
 	p1 = points[14][1][7]
-	p2 = circleIntersection(r7, rc)
-	p3 = circleIntersection(r8, rc)
+	p2 = circleXcircleCC(r7, rc)
+	p3 = circleXcircleCC(r8, rc)
 	p4 = points[14][1][8]
 
 	path.moveto(p1)
@@ -405,20 +413,20 @@ def genPoints():
 	#---------- Center Camp - Partial A-C Block ----------#
 
 	p3 = points[14][1][6]
-	p1 = lineIntersection(rc, points[14][1][3], p3)
-	p2 = circleIntersection(r6, rc)
+	p1 = lineXcircle(points[14][1][3], p3, CENTER_CAMP, rc)[0]
+	p2 = circleXcircleCC(r6, rc)
 
 	path.moveto(p1)
 	path.arcto(p2, rc, 1)
 	path.arcto(p3, r6, 0)
 	path.closepath()
 
-	addCircle((0, MAN_TO_CENTER_CAMP), CENTER_CAMP_RADIUS1)
-#	addCircle((0, MAN_TO_CENTER_CAMP), CENTER_CAMP_RADIUS2, "red")
-#	addCircle((0, MAN_TO_CENTER_CAMP), CENTER_CAMP_RADIUS3, "blue")
+	addCircle(CENTER_CAMP, CENTER_CAMP_RADIUS1)
+#	addCircle(CENTER_CAMP, CENTER_CAMP_RADIUS2, "red")
+#	addCircle(CENTER_CAMP, CENTER_CAMP_RADIUS3, "blue")
 
 	print '</g>'
 	print '</svg>'
 
 if __name__ == '__main__':
-	genPoints()
+	main()
