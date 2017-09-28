@@ -20,10 +20,22 @@ FOUR_THIRTY_FLARE_ANGLE = 28
 THREE_O_CLOCK_FLARE_ANGLE = 20
 PLAZA_RADIUS = 125
 
-def rotate(radians, points):
+def rotatePoint(radians, point):
+	c = math.cos(radians)
+	s = math.sin(radians)
+	x, y = point
+	return (x*c - y*s, x*s + y*c)
+
+def rotatePoints(radians, points):
 	c = math.cos(radians)
 	s = math.sin(radians)
 	return [(x*c - y*s, x*s + y*c) for x, y in points]
+
+def radialRadians(radialIndex):
+	return (radialIndex - 4) * math.pi / 24
+
+def radialDegrees(radialIndex):
+	return (radialIndex - 4) * 180.0 / 24
 
 def genThreeOClock():
 	r = MAN_TO_ESPLANADE - HALF_STREET_WIDTH
@@ -177,15 +189,39 @@ def lineXcircle(p1, p2, c, r):
 	return s1, s2
 
 def flareLine(radius, point, angle):
+	#
+	# This returns the point where the line that passes through the input point
+	# at the input angle (clockwise from the x axis) intersects the circle with
+	# the input radius centered at the Man.
+	#
 	x1, y1 = point
 
 	b = math.tan(math.radians(angle))
 	a = y1 - b*x1
+	bb1 = b*b + 1
 
-	x = (math.sqrt(radius*radius * (b*b + 1) - a*a) - a*b) / (b*b + 1)
+	x = (math.sqrt(radius*radius*bb1 - a*a) - a*b) / bb1
 	y = a + b*x
 
 	return x, y
+
+def flareFromPlaza(points, radii, radial, ring, toRing, angle):
+	pointsL = points[radial][0]
+	pointsR = points[radial][1]
+
+	plazaCenter = (radii[ring] + HALF_STREET_WIDTH, 0)
+	plazaCenter = rotatePoint(radialRadians(radial), plazaCenter)
+
+	angle /= 2.0
+	radialAngle = radialDegrees(radial)
+	angle1 = radialAngle + angle
+	angle2 = radialAngle - angle
+
+	rings = xrange(toRing, ring + 1) if toRing < ring else xrange(ring + 1, toRing + 1)
+
+	for i in rings:
+		pointsL[i] = flareLine(radii[i], plazaCenter, angle1)
+		pointsR[i] = flareLine(radii[i], plazaCenter, angle2)
 
 def plazaPath1(path, p1, p2, p3, p4, r12, r34, z1, z2, zr):
 	path.moveto(z1)
@@ -229,71 +265,55 @@ def addCircle(center, radius, stroke=None, fill=None):
 		'' if fill is None else ' fill="{}"'.format(fill),
 	)
 
-def nPrev(n, m):
-	return n - (1 if m > 14 else 2)
+def previousRadial(radial, ring):
+	return radial - (1 if ring > 14 else 2)
 
-def addPlaza(plazaHash, points, radii, n, j):
-	pointsL = points[n][0]
-	pointsR = points[n][1]
+def addPlaza(plazaHash, points, radii, radial, ring):
+	pointsL = points[radial][0]
+	pointsR = points[radial][1]
 
-	plazaCenter = (radii[j] + HALF_STREET_WIDTH, 0)
-	plazaCenter = rotate((n - 4) * math.pi / 24, [plazaCenter])[0]
+	plazaCenter = (radii[ring] + HALF_STREET_WIDTH, 0)
+	plazaCenter = rotatePoint(radialRadians(radial), plazaCenter)
 
-	k1 = '{},{}'.format(n, j + 1)
-	k2 = '{},{}'.format(nPrev(n, j + 1), j + 1)
-	k3 = '{},{}'.format(nPrev(n, j - 1), j - 1)
-	k4 = '{},{}'.format(n, j - 1)
+	i, j, k = ring - 1, ring + 1, ring + 2
 
-	i = j - 1
+	key1 = '{},{}'.format(radial, j)
+	key2 = '{},{}'.format(previousRadial(radial, j), j)
+	key3 = '{},{}'.format(previousRadial(radial, i), i)
+	key4 = '{},{}'.format(radial, i)
 
-	z32, z41 = circleXcircle(radii[j], plazaCenter, PLAZA_RADIUS)
-	s1, z31 = lineXcircle(pointsL[i], pointsL[j], plazaCenter, PLAZA_RADIUS)
-	s1, z42 = lineXcircle(pointsR[i], pointsR[j], plazaCenter, PLAZA_RADIUS)
+	z32, z41 = circleXcircle(radii[ring], plazaCenter, PLAZA_RADIUS)
+	s1, z31 = lineXcircle(pointsL[i], pointsL[ring], plazaCenter, PLAZA_RADIUS)
+	s1, z42 = lineXcircle(pointsR[i], pointsR[ring], plazaCenter, PLAZA_RADIUS)
 
-	i, j = j + 1, j + 2
+	z21, z12 = circleXcircle(radii[j], plazaCenter, PLAZA_RADIUS)
+	z22, s2 = lineXcircle(pointsL[j], pointsL[k], plazaCenter, PLAZA_RADIUS)
+	z11, s2 = lineXcircle(pointsR[j], pointsR[k], plazaCenter, PLAZA_RADIUS)
 
-	z21, z12 = circleXcircle(radii[i], plazaCenter, PLAZA_RADIUS)
-	z22, s2 = lineXcircle(pointsL[i], pointsL[j], plazaCenter, PLAZA_RADIUS)
-	z11, s2 = lineXcircle(pointsR[i], pointsR[j], plazaCenter, PLAZA_RADIUS)
-
-#	addCircle(plazaCenter, PLAZA_RADIUS, "blue")
-#	addCircle(z32, 8, "red", "red")
-#	addCircle(z41, 8, "green", "green")
-#	addCircle(z31, 8, "green", "green")
-#	addCircle(z42, 8, "green", "green")
-#	addCircle(z21, 8, "red", "red")
-#	addCircle(z12, 8, "green", "green")
-#	addCircle(z22, 8, "red", "red")
-#	addCircle(z11, 8, "red", "red")
-
-	plazaHash[k1] = (plazaPath1, z11, z12, PLAZA_RADIUS)
-	plazaHash[k2] = (plazaPath2, z21, z22, PLAZA_RADIUS)
-	plazaHash[k3] = (plazaPath3, z31, z32, PLAZA_RADIUS)
-	plazaHash[k4] = (plazaPath4, z41, z42, PLAZA_RADIUS)
+	plazaHash[key1] = (plazaPath1, z11, z12, PLAZA_RADIUS)
+	plazaHash[key2] = (plazaPath2, z21, z22, PLAZA_RADIUS)
+	plazaHash[key3] = (plazaPath3, z31, z32, PLAZA_RADIUS)
+	plazaHash[key4] = (plazaPath4, z41, z42, PLAZA_RADIUS)
 
 def main():
 	radii, threeOClockL, threeOClockR = genThreeOClock()
 
 	points = []
-	for n in xrange(-4, 12 + 1):
-		radians = n * math.pi / 24
-		pointsL = rotate(radians, threeOClockL)
-		pointsR = rotate(radians, threeOClockR)
+	for radial in xrange(18): # 0 thru 17 (every 15 minutes from 2:00 to 6:00 inclusive)
+		radians = radialRadians(radial)
+		pointsL = rotatePoints(radians, threeOClockL)
+		pointsR = rotatePoints(radians, threeOClockR)
 		points.append((pointsL, pointsR))
 
-	plazaCenter = (radii[4] + HALF_STREET_WIDTH, 0)
+	flareFromPlaza(points, radii, 4, 4, 1, THREE_O_CLOCK_FLARE_ANGLE)
+	flareFromPlaza(points, radii, 4, 4, 6, -THREE_O_CLOCK_FLARE_ANGLE)
+	flareFromPlaza(points, radii, 10, 14, 16, -THREE_O_CLOCK_FLARE_ANGLE)
 
-	points[4][0][1] = flareLine(radii[1], plazaCenter, THREE_O_CLOCK_FLARE_ANGLE/2)
-	points[4][1][1] = flareLine(radii[1], plazaCenter, -THREE_O_CLOCK_FLARE_ANGLE/2)
+	pointsL = points[10][0]
+	pointsR = points[10][1]
 
-	points[4][0][2] = flareLine(radii[2], plazaCenter, THREE_O_CLOCK_FLARE_ANGLE/2)
-	points[4][1][2] = flareLine(radii[2], plazaCenter, -THREE_O_CLOCK_FLARE_ANGLE/2)
-
-	points[4][0][3] = flareLine(radii[3], plazaCenter, THREE_O_CLOCK_FLARE_ANGLE/2)
-	points[4][1][3] = flareLine(radii[3], plazaCenter, -THREE_O_CLOCK_FLARE_ANGLE/2)
-
-	points[10][0][1] = flareLine(radii[1], points[10][0][2], 180*(10-4)/24 + FOUR_THIRTY_FLARE_ANGLE/2)
-	points[10][1][1] = flareLine(radii[1], points[10][1][2], 180*(10-4)/24 - FOUR_THIRTY_FLARE_ANGLE/2)
+	pointsL[1] = flareLine(radii[1], pointsL[2], radialDegrees(10) + FOUR_THIRTY_FLARE_ANGLE/2)
+	pointsR[1] = flareLine(radii[1], pointsR[2], radialDegrees(10) - FOUR_THIRTY_FLARE_ANGLE/2)
 
 	print '<svg'
 	print '\txmlns="http://www.w3.org/2000/svg"'
@@ -422,8 +442,6 @@ def main():
 	path.closepath()
 
 	addCircle(CENTER_CAMP, CENTER_CAMP_RADIUS1)
-#	addCircle(CENTER_CAMP, CENTER_CAMP_RADIUS2, "red")
-#	addCircle(CENTER_CAMP, CENTER_CAMP_RADIUS3, "blue")
 
 	print '</g>'
 	print '</svg>'
