@@ -272,14 +272,13 @@ function getStreetFromDistanceAndAngle(d, angle)
 }
 function getLocationFromLatLong(latLong)
 {
-	if (latLong.equals(Measurements.ManCenter))
-		return "Center of the Man";
-
 	var result = GeoAPI.Inverse(latLong);
 	var degrees = (result.azi1 - Measurements.TwelveOClockAzimuth + 360) % 360;
 	var feet = result.s12 / 0.3048;
 	var time, distance;
 
+	if (feet < 0.5)
+		return "Center of the Man";
 	if (feet < 10000) {
 		distance = getStreetFromDistanceAndAngle(feet, degrees);
 		time = getTimeForAngle(degrees, 0);
