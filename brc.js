@@ -227,6 +227,8 @@ function getStreetFromDistanceAndAngle(d, angle)
 {
 	var dStr = Math.round(d) + "'";
 
+	if (angle > 180)
+		angle = 360 - angle
 	if (angle < 59)
 		return dStr;
 
@@ -274,26 +276,18 @@ function getLocationFromLatLong(latLong)
 		return "Center of the Man";
 
 	var result = GeoAPI.Inverse(latLong);
+	var degrees = (result.azi1 - Measurements.TwelveOClockAzimuth + 360) % 360;
+	var feet = result.s12 / 0.3048;
+	var time, distance;
 
-	var angle = result.azi1;
-	if (angle < 0)
-		angle += 360;
-	angle -= Measurements.TwelveOClockAzimuth;
-	if (angle < 0)
-		angle += 360;
-
-	var t;
-	var d = result.s12 / 0.3048; // Convert from meters to feet
-
-	if (d < 10000) {
-		t = getTimeForAngle(angle, 0);
-		d = getStreetFromDistanceAndAngle(d, angle > 180 ? 360 - angle : angle);
+	if (feet < 10000) {
+		distance = getStreetFromDistanceAndAngle(feet, degrees);
+		time = getTimeForAngle(degrees, 0);
 	} else {
-		t = getTimeForAngle(angle, 3);
-		d /= 5280;
-		d = d.toFixed(3).replace(/\.?0+$/, "") + "mi";
+		distance = (feet / 5280).toFixed(3).replace(/\.?0+$/, "") + "mi";
+		time = getTimeForAngle(degrees, 3);
 	}
-	return t + ' & ' + d;
+	return time + ' & ' + distance;
 }
 function getLatLongFromLocation(location)
 {
@@ -301,8 +295,7 @@ function getLatLongFromLocation(location)
 
 	if (location === "MAN")
 		return Measurements.ManCenter;
-
-	if (location === "TEMPLE")
+	else if (location === "TEMPLE")
 		location = "12&ESPLANADE";
 	else if (location === "CENTERCAMP")
 		location = "6&A";
