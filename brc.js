@@ -21,11 +21,6 @@ LatLong.prototype.copy = function()
 {
 	return new LatLong(this.latitude, this.longitude);
 }
-LatLong.prototype.equals = function(latLong)
-{
-	return Math.abs(this.latitude - latLong.latitude) < 1e-13 &&
-		Math.abs(this.longitude - latLong.longitude) < 1e-13;
-}
 LatLong.prototype.toGoogle = function()
 {
 	return new google.maps.LatLng(this.latitude, this.longitude);
@@ -42,6 +37,16 @@ var DefaultMeasurements = {
 	OutermostRing: "L",
 	TwelveOClockAzimuth: 45,
 	Point3Distance: 8145 * 0.3048,
+
+	inWideBlock: function(street, angle) {
+		// Street: 0123456
+		// Letter: ABCDEFG
+
+		// F @ 2:00-2:30 (9:30-10:00), 3:30-4:00 (8:00-8:30), and 5:00-6:00 (6:00-7:00)
+
+		return street === 5 &&
+			(angle < 75 || angle > 105 && angle < 120 || angle > 150);
+	},
 };
 var MeasurementsByYear = {
 	'2013': {
@@ -55,6 +60,14 @@ var MeasurementsByYear = {
 		I_BlockWidth: 210,
 		J_StreetWidth: 20,
 		J_BlockWidth: 210,
+
+		inWideBlock: function(street, angle) {
+			// F @ 2:00-2:30 (9:30-10:00) and 3:30-4:00 (8:00-8:30)
+			// E @ 5:00-6:00 (6:00-7:00)
+
+			return street === 5 && (angle < 75 || angle > 105 && angle < 120)
+				|| street === 4 && angle > 150;
+		},
 
 		ManCenter: new LatLong(40.78699,-119.20433),
 		Pentagon: [
@@ -244,28 +257,16 @@ function getStreetFromDistanceAndAngle(d, angle)
 	for (var i = 2; i < n; ++i)
 		if (d < cachedDistances[i])
 		{
-			var side = (i -= 2) % 2;
-			var letter = String.fromCharCode(LetterACode + (i - side) / 2);
+			var side = i & 1;
+			var street = (i >> 1) - 1;
 
-			if (letter === 'F' &&
-				(angle > 150 ||
-				(angle > 105 && angle < 120) ||
-				(angle >= 59 && angle < 75)))
-			{
-				if (side === 0) {
-					letter = 'E';
-					side = 'Mountain';
-				} else {
-					letter = 'G';
-					side = 'Man';
-				}
-			} else
-				if (side === 0)
-					side = 'Man';
-				else
-					side = 'Mountain';
+			side = Measurements.inWideBlock(street, angle) ?
+				side === 0 ? (--street, 'Mountain') : (++street, 'Man') :
+				side === 0 ? 'Man' : 'Mountain';
 
-			return letter + ' (' + side + ' Side) (' + dStr + ')';
+			street = String.fromCharCode(LetterACode + street);
+
+			return street + ' (' + side + ' Side) (' + dStr + ')';
 		}
 
 	return dStr;
@@ -319,13 +320,13 @@ function getLatLongFromLocation(location)
 		}
 	}
 
-	var degrees = (hours * 3600 + minutes * 60 + seconds) / SecondsPerDegree;
+	var degrees, feet;
 
+	degrees = (hours * 3600 + minutes * 60 + seconds) / SecondsPerDegree;
 	degrees = (degrees + Measurements.TwelveOClockAzimuth) % 360;
 
 	location = location.slice(m[0].length);
 
-	var feet = 0;
 	if (location === 'ESPLANADE')
 	{
 		feet = Measurements.ManToEsplanade;
