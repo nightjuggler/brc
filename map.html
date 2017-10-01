@@ -302,13 +302,24 @@ function init()
 	if (queryString.drawPentagon)
 		drawPentagon(map);
 
+	var geocoder = new google.maps.Geocoder();
+
+	function geocodeCallback(results, status)
+	{
+		if (status === "OK") {
+			map.setCenter(results[0].geometry.location);
+		} else {
+			brcLoc.value = currentLL.location;
+		}
+	}
+
 	brcLoc.addEventListener("change", function() {
 		var o = {};
 		parseBRCLocation(o, brcLoc.value);
 		if (o.ll)
 			map.setCenter(o.ll);
 		else
-			brcLoc.value = currentLL.location;
+			geocoder.geocode({"address": brcLoc.value}, geocodeCallback);
 	}, false);
 	llText.addEventListener("change", function() {
 		var o = {};
