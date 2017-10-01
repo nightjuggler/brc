@@ -82,7 +82,8 @@ function parseQueryString(queryString)
 	if (typeof q !== 'string' || q.charAt(0) !== '?') return;
 
 	var flags = {
-		pgn: 'addPentagon',
+		grid: 'drawGrid',
+		pentagon: 'drawPentagon',
 	};
 	var handlers = {
 		loc: parseBRCLocation,
@@ -95,7 +96,7 @@ function parseQueryString(queryString)
 	for (var s of q.substr(1).split('&'))
 	{
 		var i = s.indexOf('=');
-		if (i < 0 && isValidId(s, 3) && flags[s]) {
+		if (i < 0 && isValidId(s, 8) && flags[s]) {
 			queryString[flags[s]] = true;
 			continue;
 		}
@@ -107,10 +108,11 @@ function parseQueryString(queryString)
 			handlers[k](queryString, v);
 	}
 }
-function addPentagon(map, pentagon)
+function drawPentagon(map)
 {
-	var llArray = [];
+	var pentagon = BRC.getMeasurements().Pentagon;
 
+	var llArray = [];
 	for (var ll of pentagon)
 		llArray.push(ll.toGoogle());
 
@@ -122,6 +124,136 @@ function addPentagon(map, pentagon)
 		strokeWeight: 2,
 		fillOpacity: 0,
 	});
+}
+function geoDirectGeographicLib(latLong)
+{
+	var geo = GeographicLib.Geodesic.WGS84;
+	var lat1 = latLong.latitude;
+	var lon1 = latLong.longitude;
+
+	return function(degrees, meters) {
+		var result = geo.Direct(lat1, lon1, degrees, meters);
+		return new google.maps.LatLng(result.lat2, result.lon2);
+	};
+}
+function geoDirectGoogleMaps(latLong)
+{
+	var geo = google.maps.geometry.spherical;
+	latLong = latLong.toGoogle();
+
+	return function(degrees, meters) {
+		return geo.computeOffset(latLong, meters, degrees);
+	};
+}
+function drawGrid(map)
+{
+	var m = BRC.getMeasurements();
+
+	var geoDirect = geoDirectGeographicLib(m.ManCenter);
+//	var geoDirect = geoDirectGoogleMaps(m.ManCenter);
+
+	var getLL = function(degrees, meters) {
+		return geoDirect((degrees + m.TwelveOClockAzimuth) % 360, meters);
+	};
+
+	var streetColor = '#0000FF';
+	var streetWeight = 2;
+	var midBlockColor = '#FF0000';
+	var midBlockWeight = 1;
+
+	var llArray = [];
+	var options = {
+		clickable: false,
+		geodesic: true,
+		map: map,
+		path: llArray,
+		strokeOpacity: 1,
+	};
+
+	var radii = m.cachedDistances;
+	var numRadii = radii.length;
+	for (var i = 0; i < numRadii; ++i)
+	{
+		var meters = radii[i] * 0.3048;
+		var degreeStep = 5 * 180 / (Math.PI * meters); // 5 meters
+		var midBlock = (i & 1) === 1;
+		var street = (i >> 1) - 1;
+		var inWideBefore = false;
+
+		if (midBlock) {
+			options.strokeColor = midBlockColor;
+			options.strokeWeight = midBlockWeight;
+		} else {
+			options.strokeColor = streetColor;
+			options.strokeWeight = streetWeight;
+		}
+
+		for (var degrees = 60; degrees < 300;)
+		{
+			var angle = degrees > 180 ? 360 - degrees : degrees;
+			var inWide = m.inWideBlock(street, angle);
+			if (midBlock && (inWide || m.inWideBlock(street + 1, angle)))
+			{
+				var radialDegrees = i >= 14 ? 7.5 : 15;
+				degrees = radialDegrees * Math.floor(degrees / radialDegrees);
+				if (llArray.length > 0)
+				{
+					llArray.push(getLL(degrees, meters));
+					new google.maps.Polyline(options);
+					llArray.length = 0;
+				}
+				degrees += radialDegrees;
+				continue;
+			}
+			if (!midBlock && inWide !== inWideBefore)
+			{
+				var radialDegrees = i >= 14 ? 7.5 : 15;
+				degrees = radialDegrees * Math.floor(degrees / radialDegrees);
+				var lastPoint = getLL(degrees, meters);
+				if (llArray.length > 0)
+				{
+					llArray.push(lastPoint);
+					new google.maps.Polyline(options);
+					llArray.length = 0;
+				}
+				llArray.push(lastPoint);
+				if ((inWideBefore = inWide)) {
+					options.strokeColor = midBlockColor;
+					options.strokeWeight = midBlockWeight;
+				} else {
+					options.strokeColor = streetColor;
+					options.strokeWeight = streetWeight;
+				}
+				degrees += degreeStep;
+				continue;
+			}
+			llArray.push(getLL(degrees, meters));
+			degrees += degreeStep;
+		}
+		if (llArray.length > 0)
+		{
+			llArray.push(getLL(300, meters));
+			new google.maps.Polyline(options);
+			llArray.length = 0;
+		}
+	}
+
+	var meters0 = radii[0] * 0.3048;
+	var metersG = radii[14] * 0.3048;
+	var metersL = radii[radii.length - 2] * 0.3048;
+
+	options.strokeColor = streetColor;
+	options.strokeWeight = streetWeight;
+
+	var fromG = false;
+	var degreeStep = 7.5;
+	for (var degrees = 60; degrees <= 300; degrees += degreeStep)
+	{
+		llArray[0] = getLL(degrees, fromG ? metersG : meters0);
+		llArray[1] = getLL(degrees, metersL);
+		new google.maps.Polyline(options);
+		fromG = !fromG;
+	}
 }
 function init()
 {
@@ -155,9 +287,6 @@ function init()
 		position: options.center
 	});
 
-	if (queryString.addPentagon)
-		addPentagon(map, BRC.getMeasurements().Pentagon);
-
 	function mapCenterChanged()
 	{
 		var ll = map.getCenter();
@@ -169,6 +298,11 @@ function init()
 		brcLoc.size = brcLoc.value.length > 20 ? 30 : 20;
 	}
 	mapCenterChanged();
+
+	if (queryString.drawGrid)
+		drawGrid(map);
+	if (queryString.drawPentagon)
+		drawPentagon(map);
 
 	brcLoc.addEventListener("change", function() {
 		var o = {};
