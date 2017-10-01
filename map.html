@@ -187,7 +187,6 @@ function drawGrid(map)
 			options.strokeColor = streetColor;
 			options.strokeWeight = streetWeight;
 		}
-
 		for (var degrees = 60; degrees < 300;)
 		{
 			var angle = degrees > 180 ? 360 - degrees : degrees;
@@ -246,8 +245,7 @@ function drawGrid(map)
 	options.strokeWeight = streetWeight;
 
 	var fromG = false;
-	var degreeStep = 7.5;
-	for (var degrees = 60; degrees <= 300; degrees += degreeStep)
+	for (var degrees = 60; degrees <= 300; degrees += 7.5)
 	{
 		llArray[0] = getLL(degrees, fromG ? metersG : meters0);
 		llArray[1] = getLL(degrees, metersL);
