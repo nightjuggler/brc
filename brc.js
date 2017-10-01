@@ -70,7 +70,6 @@ var MeasurementsByYear = {
 		},
 
 		ManCenter: new LatLong(40.78699,-119.20433),
-		TwelveOClockAzimuth: 44.9,
 		Pentagon: [
 			new LatLong(40.80276,-119.18348), // Point 3
 			new LatLong(40.77682,-119.17793), // Point 4
@@ -137,10 +136,8 @@ function generatePentagon(m)
 	if (pentagon.length > 0)
 	{
 		var result = GeoAPI.Inverse(pentagon[0]);
-		if (m.TwelveOClockAzimuth === undefined)
-			m.TwelveOClockAzimuth = result.azi1;
-		if (m.Point3Distance === undefined)
-			m.Point3Distance = result.s12;
+		m.TwelveOClockAzimuth = result.azi1;
+		m.Point3Distance = result.s12;
 	}
 	for (var degrees = 72 * pentagon.length; degrees < 360; degrees += 72)
 	{
