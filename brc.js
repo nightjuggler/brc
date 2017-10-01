@@ -410,6 +410,6 @@ BRC.init = function()
 		BRC.setMeasurements = setMeasurements;
 	}
 	return BRC;
-}
+};
 return BRC;
 })();
