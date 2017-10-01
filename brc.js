@@ -301,7 +301,11 @@ function getLatLongFromLocation(location)
 		location = "6&A";
 
 	var m = location.match(/^([1-9][012]?(:[0-9][0-9](:[0-9][0-9](\.[0-9]{1,3})?)?)?)&/);
-	if (!m) return null;
+	if (!m) {
+		if (!location.match(/^POINT[12345]$/)) return null;
+		var i = parseInt(location.slice(-1), 10);
+		return Measurements.Pentagon[(i + 2) % 5];
+	}
 
 	var hrsMinSec = m[1].split(':');
 
