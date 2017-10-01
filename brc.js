@@ -1,8 +1,8 @@
-"use strict";
 var GeographicLib;
 var google;
 
 var BRC = (function() {
+"use strict";
 
 var GeoAPI;
 var Measurements;
@@ -215,7 +215,7 @@ function setMeasurements(year)
 
 	GeoAPI.setManCenter(m.ManCenter);
 
-	return Measurements = m;
+	return (Measurements = m);
 }
 function getTimeForAngle(degrees, precision)
 {
@@ -241,7 +241,7 @@ function getStreetFromDistanceAndAngle(d, angle)
 	var dStr = Math.round(d) + "'";
 
 	if (angle > 180)
-		angle = 360 - angle
+		angle = 360 - angle;
 	if (angle < 59)
 		return dStr;
 
