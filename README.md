@@ -22,7 +22,7 @@ The location can also be specified in the URL. For example:
 
 You can also specify the year (2013-2017), the zoom level, and whether to draw the perimeter pentagon or the city grid. For example:
 
-* [https://nightjuggler.com/brc/map.html?y=2016&pentagon&grid&z=15](https://nightjuggler.com/brc/map.html?y=2016&pentagon&grid&z=15)
+* [https://nightjuggler.com/brc/map.html?y=2016&pentagon&grid&z=14](https://nightjuggler.com/brc/map.html?y=2016&pentagon&grid&z=14)
 
 # gensvg.py
 
