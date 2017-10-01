@@ -20,9 +20,9 @@ The location can also be specified in the URL. For example:
 * [https://nightjuggler.com/brc/map.html?loc=5:40:33.8+280.16mi](https://nightjuggler.com/brc/map.html?loc=5:40:33.8+280.16mi)
 * [https://nightjuggler.com/brc/map.html?loc=6:35:47.9+7665.185mi&z=18](https://nightjuggler.com/brc/map.html?loc=6:35:47.9+7665.185mi&z=18)
 
-You can also specify the year (2013-2017), whether to draw the perimeter pentagon, and the zoom level. For example:
+You can also specify the year (2013-2017), the zoom level, and whether to draw the perimeter pentagon or the city grid. For example:
 
-* [https://nightjuggler.com/brc/map.html?y=2016&pgn&z=14](https://nightjuggler.com/brc/map.html?y=2016&pgn&z=14)
+* [https://nightjuggler.com/brc/map.html?y=2013&pentagon&grid&z=15](https://nightjuggler.com/brc/map.html?y=2013&pentagon&grid&z=15)
 
 # gensvg.py
 
