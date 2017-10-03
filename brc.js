@@ -1,6 +1,8 @@
 var GeographicLib;
 var google;
+var turf;
 
+/* exported BRC */
 var BRC = (function() {
 "use strict";
 
@@ -127,7 +129,7 @@ var MeasurementsByYear = {
 		]
 	}
 };
-function generatePentagon(m)
+function computePentagon(m)
 {
 	var pentagon = m.Pentagon;
 
@@ -147,13 +149,13 @@ function generatePentagon(m)
 	if (Measurements)
 		GeoAPI.setManCenter(Measurements.ManCenter);
 }
-function setDefaultMeasurements(m)
+function copyMissingProperties(toObj, fromObj)
 {
-	var dm = DefaultMeasurements;
-	for (var key of Object.getOwnPropertyNames(dm))
-		if (!(key in m)) m[key] = dm[key];
+	for (var key of Object.getOwnPropertyNames(fromObj))
+		if (!(key in toObj))
+			toObj[key] = fromObj[key];
 }
-function setCachedDistances(m)
+function computeDistances(m)
 {
 	var cachedDistances = m.cachedDistances = [];
 
@@ -190,11 +192,26 @@ function getMeasurements(year)
 
 	var m = MeasurementsByYear[year];
 
-	if (typeof m === "object" && !Object.isFrozen(m))
+	if (typeof year === "string" && year.length <= 16 && year.match(/^[A-Za-z][0-9A-Za-z]*$/))
 	{
-		setDefaultMeasurements(m);
-		setCachedDistances(m);
-		generatePentagon(m);
+		if (typeof m !== "object") {
+			m = {};
+			for (var key of Object.getOwnPropertyNames(Measurements))
+				m[key] = Measurements[key];
+
+			MeasurementsByYear[year] = m;
+		} else {
+			if (m.cachedDistances === null)
+				computeDistances(m);
+			if (m.Pentagon.length < 5)
+				computePentagon(m);
+		}
+	}
+	else if (typeof m === "object" && !Object.isFrozen(m))
+	{
+		copyMissingProperties(m, DefaultMeasurements);
+		computeDistances(m);
+		computePentagon(m);
 
 		Object.freeze(m.ManCenter);
 		Object.freeze(m.Pentagon);
@@ -274,7 +291,7 @@ function getStreetFromDistanceAndAngle(d, angle)
 function getLocationFromLatLong(latLong)
 {
 	var result = GeoAPI.Inverse(latLong);
-	var degrees = (result.azi1 - Measurements.TwelveOClockAzimuth + 360) % 360;
+	var degrees = (result.azi1 - Measurements.TwelveOClockAzimuth + 720) % 360;
 	var feet = result.s12 / 0.3048;
 	var time, distance;
 
@@ -404,6 +421,8 @@ BRC.init = function()
 		useGeographicLib();
 	else if (google)
 		useGoogle();
+	else
+		return null;
 
 	if (setMeasurements())
 	{

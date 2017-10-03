@@ -69,13 +69,46 @@ function parseYear(q, v)
 {
 	if (v.match(/^20[0-9][0-9]$/) === null) return;
 
-	BRC.setMeasurements(v);
+	q.year = v;
 }
 function parseBRCLocation(q, v)
 {
-	var ll = BRC.getLatLongFromLocation(v);
-	if (ll)
-		q.ll = ll.toGoogle();
+	q.location = v;
+}
+function parseAzimuth(q, v)
+{
+	if (v.match(/^-?[0-9]{1,3}(?:\.[0-9]{1,8})?$/) === null) return;
+
+	v = parseFloat(v);
+	if (v < -180 || v > 360) return;
+
+	q.azimuth = (v + 360) % 360;
+}
+function parseManCenter(q, v)
+{
+	var o = {};
+	parseLatLng(o, v);
+	if (o.ll)
+		q.manCenter = o.ll;
+}
+function parsePoint3(q, v)
+{
+	var o = {};
+	parseLatLng(o, v);
+	if (o.ll)
+		q.point3 = o.ll;
+	else {
+		var m = v.match(/^([0-9]{1,9}(?:\.[0-9]{1,9})?)(ft|km|m|mi)$/);
+		if (!m) return;
+
+		var n = parseFloat(m[1]);
+		q.point3 = n * {ft: 0.3048, km: 1000, m: 1, mi: 5280 * 0.3048}[m[2]];
+	}
+}
+function parseMapType(q, v)
+{
+	if (v === 'hybrid' || v === 'roadmap' || v === 'satellite' || v === 'terrain')
+		q.mapType = v;
 }
 function parseQueryString(queryString)
 {
@@ -88,11 +121,19 @@ function parseQueryString(queryString)
 		pentagon: 'drawPentagon',
 	};
 	var handlers = {
+		azi: parseAzimuth,
+		azimuth: parseAzimuth,
+		man: parseManCenter,
 		loc: parseBRCLocation,
 		ll: parseLatLng,
+		p3: parsePoint3,
+		point3: parsePoint3,
+		t: parseMapType,
 		xy: parseLngLat,
 		y: parseYear,
+		year: parseYear,
 		z: parseZoom,
+		zoom: parseZoom,
 	};
 
 	for (var s of q.substr(1).split('&'))
@@ -106,16 +147,14 @@ function parseQueryString(queryString)
 		var k = s.substr(0, i);
 		var v = s.substr(i + 1);
 
-		if (isValidId(k, 3) && handlers[k])
+		if (isValidId(k, 8) && handlers[k])
 			handlers[k](queryString, v);
 	}
 }
-function drawPentagon(map)
+function drawPentagon(map, m)
 {
-	var pentagon = BRC.getMeasurements().Pentagon;
-
 	var llArray = [];
-	for (var ll of pentagon)
+	for (var ll of m.Pentagon)
 		llArray.push(ll.toGoogle());
 
 	new google.maps.Polygon({
@@ -147,10 +186,8 @@ function geoDirectGoogleMaps(latLong)
 		return geo.computeOffset(latLong, meters, degrees);
 	};
 }
-function drawGrid(map)
+function drawGrid(map, m)
 {
-	var m = BRC.getMeasurements();
-
 	var geoDirect = geoDirectGeographicLib(m.ManCenter);
 //	var geoDirect = geoDirectGoogleMaps(m.ManCenter);
 
@@ -262,19 +299,57 @@ function init()
 	var queryString = {};
 	parseQueryString(queryString);
 
-	var currentLL = BRC.getMeasurements().ManCenter.copy();
+	var brcMeasurements = queryString.year && BRC.setMeasurements(queryString.year) || BRC.getMeasurements();
+
+	if (typeof queryString.azimuth === "number")
+	{
+		brcMeasurements = BRC.setMeasurements("custom");
+		brcMeasurements.TwelveOClockAzimuth = queryString.azimuth;
+	}
+	if (queryString.manCenter || queryString.point3 !== undefined)
+	{
+		brcMeasurements = BRC.getMeasurements("custom");
+
+		if (queryString.manCenter) {
+			var gll = queryString.manCenter;
+			var ll = brcMeasurements.ManCenter.copy();
+			ll.latitude = gll.lat();
+			ll.longitude = gll.lng();
+			brcMeasurements.ManCenter = ll;
+		}
+		brcMeasurements.Pentagon = [];
+
+		if (typeof queryString.point3 === "number")
+			brcMeasurements.Point3Distance = queryString.point3;
+		else if (queryString.point3) {
+			var gll = queryString.point3;
+			var ll = brcMeasurements.ManCenter.copy();
+			ll.latitude = gll.lat();
+			ll.longitude = gll.lng();
+			brcMeasurements.Pentagon.push(ll);
+		}
+
+		brcMeasurements = BRC.setMeasurements("custom");
+	}
+	if (queryString.location)
+	{
+		var ll = BRC.getLatLongFromLocation(queryString.location);
+		if (ll)
+			queryString.ll = ll.toGoogle();
+	}
+
+	var currentLL = brcMeasurements.ManCenter.copy();
 	var brcLoc = document.getElementById("brcLoc").firstChild;
 	var llText = document.getElementById("llText").firstChild;
 
 	var options = {};
 	options.center = queryString.ll || currentLL.toGoogle();
 	options.disableDoubleClickZoom = true;
-	options.mapTypeId = google.maps.MapTypeId.SATELLITE;
+	options.mapTypeId = queryString.mapType || google.maps.MapTypeId.SATELLITE;
 	options.scrollwheel = false;
 	options.zoom = queryString.zoom || 20;
 
 	var map = new google.maps.Map(document.getElementById("map"), options);
-	map.addListener('center_changed', mapCenterChanged);
 
 	var centerMarker = new google.maps.Marker({
 		clickable: false,
@@ -298,11 +373,12 @@ function init()
 		brcLoc.size = brcLoc.value.length > 20 ? 30 : 20;
 	}
 	mapCenterChanged();
+	map.addListener('center_changed', mapCenterChanged);
 
 	if (queryString.drawGrid)
-		drawGrid(map);
+		drawGrid(map, brcMeasurements);
 	if (queryString.drawPentagon)
-		drawPentagon(map);
+		drawPentagon(map, brcMeasurements);
 
 	var geocoder = new google.maps.Geocoder();
 
@@ -316,10 +392,9 @@ function init()
 	}
 
 	brcLoc.addEventListener("change", function() {
-		var o = {};
-		parseBRCLocation(o, brcLoc.value);
-		if (o.ll)
-			map.setCenter(o.ll);
+		var ll = BRC.getLatLongFromLocation(brcLoc.value);
+		if (ll)
+			map.setCenter(ll.toGoogle());
 		else
 			geocoder.geocode({"address": brcLoc.value}, geocodeCallback);
 	}, false);

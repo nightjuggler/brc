@@ -20,9 +20,21 @@ The location can also be specified in the URL. For example:
 * [https://nightjuggler.com/brc/map.html?loc=5:40:33.8+280.16mi](https://nightjuggler.com/brc/map.html?loc=5:40:33.8+280.16mi)
 * [https://nightjuggler.com/brc/map.html?loc=6:35:47.9+7665.185mi&z=18](https://nightjuggler.com/brc/map.html?loc=6:35:47.9+7665.185mi&z=18)
 
-You can also specify the year (2013-2017), the zoom level, and whether to draw the perimeter pentagon or the city grid. For example:
+You can also specify
+the year (2013-2017),
+the zoom level,
+the map type ("hybrid", "roadmap", "satellite", or "terrain"),
+whether to draw the perimeter pentagon and/or the city grid,
+the latitude and longitude for the Man,
+the 12 o'clock azimuth (in degrees clockwise from North),
+the distance from the Man to pentagon point 3 (in feet, meters, kilometers, or miles),
+or the latitude and longitude for point 3 (overriding the azimuth and distance).
+For example:
 
 * [https://nightjuggler.com/brc/map.html?y=2016&pentagon&grid&z=14](https://nightjuggler.com/brc/map.html?y=2016&pentagon&grid&z=14)
+* [https://nightjuggler.com/brc/map.html?man=37.75515,-122.45275&grid&pentagon&t=roadmap&z=13](https://nightjuggler.com/brc/map.html?man=37.75515,-122.45275&grid&pentagon&t=roadmap&z=13)
+* [https://nightjuggler.com/brc/map.html?man=48.8583,2.2945&azimuth=315&point3=2.8km&grid&pentagon&t=terrain&z=13&loc=point3](https://nightjuggler.com/brc/map.html?man=48.8583,2.2945&azimuth=315&point3=2.8km&grid&pentagon&t=terrain&z=13&loc=point3)
+* [https://nightjuggler.com/brc/map.html?man=37.7627,-122.4352&point3=37.79543,-122.39371&grid&pentagon&z=13](https://nightjuggler.com/brc/map.html?man=37.7627,-122.4352&point3=37.79543,-122.39371&grid&pentagon&z=13)
 
 # gensvg.py
 
