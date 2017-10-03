@@ -20,15 +20,18 @@ The location can also be specified in the URL. For example:
 * [https://nightjuggler.com/brc/map.html?loc=5:40:33.8+280.16mi](https://nightjuggler.com/brc/map.html?loc=5:40:33.8+280.16mi)
 * [https://nightjuggler.com/brc/map.html?loc=6:35:47.9+7665.185mi&z=18](https://nightjuggler.com/brc/map.html?loc=6:35:47.9+7665.185mi&z=18)
 
-You can also specify
-the year (2013-2017),
-the zoom level,
-the map type ("hybrid", "roadmap", "satellite", or "terrain"),
-whether to draw the perimeter pentagon and/or the city grid,
-the latitude and longitude for the Man,
-the 12 o'clock azimuth (in degrees clockwise from North),
-the distance from the Man to pentagon point 3 (in feet, meters, kilometers, or miles),
-or the latitude and longitude for point 3 (overriding the azimuth and distance).
+You can also specify the following:
+
+* the year (2013-2017)
+* the zoom level
+* the map type ("hybrid", "roadmap", "satellite", or "terrain")
+* whether to draw the perimeter pentagon
+* whether to draw the city grid
+* the latitude and longitude for the Man
+* the 12 o'clock azimuth (in degrees clockwise from North)
+* the distance from the Man to pentagon point 3 (in feet, meters, kilometers, or miles)
+* the latitude and longitude for point 3 (overriding the azimuth and distance)
+
 For example:
 
 * [https://nightjuggler.com/brc/map.html?y=2016&pentagon&grid&z=14](https://nightjuggler.com/brc/map.html?y=2016&pentagon&grid&z=14)
