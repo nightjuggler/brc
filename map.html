@@ -175,7 +175,7 @@ function drawPentagon(map, m)
 }
 function drawGrid(map, m)
 {
-	var geoDirect = BRC.geoAPI.getCustomDirect(m.ManCenter);
+	var geoDirect = BRC.getGeoAPI().getCustomDirect(m.ManCenter);
 
 	var getLL = function(degrees, meters) {
 		return geoDirect((degrees + m.TwelveOClockAzimuth) % 360, meters);

@@ -403,6 +403,13 @@ var GeoAPIMap = {
 				return new google.maps.LatLng(result.lat2, result.lon2);
 			};
 		},
+		getPolygonArea: function(latLongArray)
+		{
+			var polygon = geo.Polygon();
+			for (let ll of latLongArray)
+				polygon.AddPoint(ll.latitude, ll.longitude);
+			return polygon.Compute(true, true);
+		},
 		name: "GeographicLib",
 	};
 },
@@ -437,6 +444,20 @@ var GeoAPIMap = {
 			return function(degrees, meters) {
 				return geo.computeOffset(latLong, meters, degrees);
 			};
+		},
+		getPolygonArea: function(latLongArray)
+		{
+			var llArray = [];
+			for (let ll of latLongArray)
+				llArray.push(ll.toGoogle());
+
+			var result = {};
+			result.area = geo.computeArea(llArray);
+
+			llArray.push(llArray[0]);
+			result.perimeter = geo.computeLength(llArray);
+
+			return result;
 		},
 		name: "Google Maps",
 	};
@@ -475,10 +496,31 @@ var GeoAPIMap = {
 				return new google.maps.LatLng(ll[1], ll[0]);
 			};
 		},
+		getPolygonArea: function(latLongArray)
+		{
+			var llArray = [];
+			for (let ll of latLongArray)
+				llArray.push([ll.longitude, ll.latitude]);
+			llArray.push(llArray[0]);
+
+			var polygon = turf.polygon([llArray]);
+			return {
+				area: turf.area(polygon),
+				perimeter: turf.lineDistance(polygon, "meters"),
+			};
+		},
 		name: "Turf",
 	};
 },
 };
+function getGeoAPI(api)
+{
+	if (api) {
+		let fn = GeoAPIMap[api];
+		return fn && fn();
+	}
+	return GeoAPI;
+}
 BRC.init = function(preferredGeoAPI)
 {
 	for (let api of [preferredGeoAPI, "geographiclib", "google", "turf"])
@@ -489,7 +531,7 @@ BRC.init = function(preferredGeoAPI)
 	}
 	if (GeoAPI && setMeasurements())
 	{
-		BRC.geoAPI = GeoAPI;
+		BRC.getGeoAPI = getGeoAPI;
 		BRC.getLatLongFromLocation = getLatLongFromLocation;
 		BRC.getLocationFromLatLong = getLocationFromLatLong;
 
