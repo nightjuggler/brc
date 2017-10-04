@@ -347,6 +347,7 @@ function getLatLongFromLocation(location)
 	degrees = (degrees + Measurements.TwelveOClockAzimuth) % 360;
 
 	location = location.slice(m[0].length);
+	location = location.replace(/\([0-9]+FT\)$/, "").replace(/\((MAN|MOUNTAIN)SIDE\)$/, "");
 
 	if (location === 'ESPLANADE')
 	{
