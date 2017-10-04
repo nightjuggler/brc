@@ -1,7 +1,8 @@
 # brc.js
 
 A JavaScript library that uses [GeographicLib](https://geographiclib.sourceforge.io/html/js/index.html)
-to convert latitude and longitude to a Black Rock City location (e.g. 2 &amp; Esplanade) and vice versa.
+to convert latitude and longitude to a Black Rock City (Burning Man) location (e.g. 2 &amp; Esplanade)
+and vice versa.
 
 # map.html
 
