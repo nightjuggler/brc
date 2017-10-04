@@ -11,7 +11,7 @@ var Measurements;
 
 var BRC = {};
 var DefaultYear = 2013;
-var LetterACode = 'A'.charCodeAt(0);
+var LetterACode = "A".charCodeAt(0);
 var SecondsPerDegree = 12 * 60 * 60 / 360;
 
 function LatLong(latitude, longitude)
@@ -51,7 +51,7 @@ var DefaultMeasurements = {
 	},
 };
 var MeasurementsByYear = {
-	'2013': {
+	"2013": {
 		ManToEsplanade: 2410, // Distance in feet from the center of the Man to the center of Esplanade
 		EsplanadeToA: 420,
 		StreetWidth: 30,
@@ -80,7 +80,7 @@ var MeasurementsByYear = {
 			new LatLong(40.80688,-119.21773), // Point 2
 		]
 	},
-	'2014': {
+	"2014": {
 		// http://innovate.burningman.org/dataset/2014-golden-spike-location/
 
 		ManCenter: new LatLong(40.78880,-119.20315),
@@ -92,7 +92,7 @@ var MeasurementsByYear = {
 			new LatLong(40.80875,-119.21665), // Point 2
 		]
 	},
-	'2015': {
+	"2015": {
 		// http://innovate.burningman.org/dataset/2015-golden-spike-location/
 
 		ManCenter: new LatLong(40.78640,-119.20650),
@@ -104,7 +104,7 @@ var MeasurementsByYear = {
 			new LatLong(40.80630,-119.21990),
 		]
 	},
-	'2016': {
+	"2016": {
 		// http://innovate.burningman.org/dataset/2016-golden-spike-and-general-city-map-data/
 
 		ManCenter: new LatLong(40.78640,-119.20650),
@@ -116,7 +116,7 @@ var MeasurementsByYear = {
 			new LatLong(40.80630,-119.21990),
 		]
 	},
-	'2017': {
+	"2017": {
 		// http://innovate.burningman.org/dataset/2017-golden-spike-and-general-city-map-data/
 
 		ManCenter: new LatLong(40.78660,-119.20660),
@@ -176,11 +176,11 @@ function computeDistances(m)
 	{
 		var letter = String.fromCharCode(letterCode);
 
-		streetWidth = m[letter + '_StreetWidth'] || defaultStreetWidth;
+		streetWidth = m[letter + "_StreetWidth"] || defaultStreetWidth;
 		x += (blockWidth + streetWidth) / 2;
 		cachedDistances.push(x);
 
-		blockWidth = m[letter + '_BlockWidth'] || defaultBlockWidth;
+		blockWidth = m[letter + "_BlockWidth"] || defaultBlockWidth;
 		x += (streetWidth + blockWidth) / 2;
 		cachedDistances.push(x);
 	}
@@ -194,7 +194,7 @@ function getMeasurements(year)
 
 	if (typeof year === "string" && year.length <= 16 && year.match(/^[A-Za-z][0-9A-Za-z]*$/))
 	{
-		if (typeof m !== "object") {
+		if (!(m instanceof Object)) {
 			m = {};
 			for (var key of Object.getOwnPropertyNames(Measurements))
 				m[key] = Measurements[key];
@@ -207,7 +207,7 @@ function getMeasurements(year)
 				computePentagon(m);
 		}
 	}
-	else if (typeof m === "object" && !Object.isFrozen(m))
+	else if (m instanceof Object && !Object.isFrozen(m))
 	{
 		copyMissingProperties(m, DefaultMeasurements);
 		computeDistances(m);
@@ -227,7 +227,7 @@ function setMeasurements(year)
 
 	var m = getMeasurements(year);
 
-	if (typeof m !== "object")
+	if (!(m instanceof Object))
 		return null;
 
 	GeoAPI.setManCenter(m.ManCenter);
@@ -248,8 +248,8 @@ function getTimeForAngle(degrees, precision)
 	if (precision > 0)
 		s = s.replace(/\.?0+$/, "");
 
-	seconds = seconds < 10 ? (seconds === 0 ? '' : ':0' + s) : ':' + s;
-	minutes = minutes < 10 ? (minutes === 0 ? ':00' : ':0' + minutes) : ':' + minutes;
+	seconds = seconds < 10 ? (seconds === 0 ? "" : ":0" + s) : ":" + s;
+	minutes = minutes < 10 ? (minutes === 0 ? ":00" : ":0" + minutes) : ":" + minutes;
 
 	return t + minutes + seconds;
 }
@@ -267,7 +267,7 @@ function getStreetFromDistanceAndAngle(d, angle)
 	if (d < cachedDistances[0])
 		return dStr;
 	if (d < cachedDistances[1])
-		return 'Esplanade (' + dStr + ')';
+		return "Esplanade (" + dStr + ")";
 
 	var n = cachedDistances.length;
 
@@ -278,12 +278,12 @@ function getStreetFromDistanceAndAngle(d, angle)
 			var street = (i >> 1) - 1;
 
 			side = Measurements.inWideBlock(street, angle) ?
-				side === 0 ? (--street, 'Mountain') : (++street, 'Man') :
-				side === 0 ? 'Man' : 'Mountain';
+				side === 0 ? (--street, "Mountain") : (++street, "Man") :
+				side === 0 ? "Man" : "Mountain";
 
 			street = String.fromCharCode(LetterACode + street);
 
-			return street + ' (' + side + ' Side) (' + dStr + ')';
+			return street + " (" + side + " Side) (" + dStr + ")";
 		}
 
 	return dStr;
@@ -304,7 +304,7 @@ function getLocationFromLatLong(latLong)
 		distance = (feet / 5280).toFixed(3).replace(/\.?0+$/, "") + "mi";
 		time = getTimeForAngle(degrees, 3);
 	}
-	return time + ' & ' + distance;
+	return time + " & " + distance;
 }
 function getLatLongFromLocation(location)
 {
@@ -320,11 +320,11 @@ function getLatLongFromLocation(location)
 	var m = location.match(/^([1-9][012]?(:[0-9][0-9](:[0-9][0-9](\.[0-9]{1,3})?)?)?)&/);
 	if (!m) {
 		if (!location.match(/^POINT[12345]$/)) return null;
-		var i = parseInt(location.slice(-1), 10);
+		let i = parseInt(location.slice(-1), 10);
 		return Measurements.Pentagon[(i + 2) % 5];
 	}
 
-	var hrsMinSec = m[1].split(':');
+	var hrsMinSec = m[1].split(":");
 
 	var hours = parseInt(hrsMinSec[0], 10);
 	if (hours > 12) return null;
@@ -349,13 +349,13 @@ function getLatLongFromLocation(location)
 	location = location.slice(m[0].length);
 	location = location.replace(/\([0-9]+FT\)$/, "").replace(/\((MAN|MOUNTAIN)SIDE\)$/, "");
 
-	if (location === 'ESPLANADE')
+	if (location === "ESPLANADE")
 	{
 		feet = Measurements.ManToEsplanade;
 	}
 	else if (location.match(/^[A-Z]$/))
 	{
-		var i = location.charCodeAt(0) - LetterACode;
+		let i = location.charCodeAt(0) - LetterACode;
 		feet = Measurements.cachedDistances[2 + 2 * i];
 		if (feet === undefined) return null;
 	}
@@ -371,11 +371,14 @@ function getLatLongFromLocation(location)
 
 	return GeoAPI.Direct(degrees, feet * 0.3048);
 }
-function useGeographicLib()
+var GeoAPIMap = {
+"geographiclib": function()
 {
-	var geo = GeographicLib.Geodesic.WGS84;
+	var geo = GeographicLib && GeographicLib.Geodesic.WGS84;
+	if (!geo) return null;
+
 	var manCenter;
-	GeoAPI = {
+	return {
 		Direct: function(degrees, meters)
 		{
 			var result = geo.Direct(manCenter.latitude, manCenter.longitude, degrees, meters);
@@ -390,13 +393,26 @@ function useGeographicLib()
 		{
 			manCenter = latLong;
 		},
+		getCustomDirect: function(latLong)
+		{
+			var lat1 = latLong.latitude;
+			var lon1 = latLong.longitude;
+
+			return function(degrees, meters) {
+				var result = geo.Direct(lat1, lon1, degrees, meters);
+				return new google.maps.LatLng(result.lat2, result.lon2);
+			};
+		},
+		name: "GeographicLib",
 	};
-}
-function useGoogle()
+},
+"google": function()
 {
-	var geo = google.maps.geometry.spherical;
+	var geo = google && google.maps && google.maps.geometry && google.maps.geometry.spherical;
+	if (!geo) return null;
+
 	var manCenter;
-	GeoAPI = {
+	return {
 		Direct: function(degrees, meters)
 		{
 			var ll = geo.computeOffset(manCenter, meters, degrees);
@@ -414,19 +430,66 @@ function useGoogle()
 		{
 			manCenter = latLong.toGoogle();
 		},
-	};
-}
-BRC.init = function()
-{
-	if (GeographicLib)
-		useGeographicLib();
-	else if (google)
-		useGoogle();
-	else
-		return null;
+		getCustomDirect: function(latLong)
+		{
+			latLong = latLong.toGoogle();
 
-	if (setMeasurements())
+			return function(degrees, meters) {
+				return geo.computeOffset(latLong, meters, degrees);
+			};
+		},
+		name: "Google Maps",
+	};
+},
+"turf": function()
+{
+	if (!turf) return null;
+
+	var manCenter;
+	return {
+		Direct: function(degrees, meters)
+		{
+			var ll = turf.destination(manCenter, meters, degrees, "meters");
+			ll = turf.getCoord(ll);
+			return new LatLong(ll[1], ll[0]);
+		},
+		Inverse: function(latLong)
+		{
+			var ll = latLong.toTurf();
+			return {
+				azi1: turf.bearing(manCenter, ll),
+				s12: turf.distance(manCenter, ll, "meters"),
+			};
+		},
+		setManCenter: function(latLong)
+		{
+			manCenter = latLong.toTurf();
+		},
+		getCustomDirect: function(latLong)
+		{
+			latLong = latLong.toTurf();
+
+			return function(degrees, meters) {
+				var ll = turf.destination(latLong, meters, degrees, "meters");
+				ll = turf.getCoord(ll);
+				return new google.maps.LatLng(ll[1], ll[0]);
+			};
+		},
+		name: "Turf",
+	};
+},
+};
+BRC.init = function(preferredGeoAPI)
+{
+	for (let api of [preferredGeoAPI, "geographiclib", "google", "turf"])
 	{
+		let fn = GeoAPIMap[api];
+		if (typeof fn === "function" && (GeoAPI = fn()))
+			break;
+	}
+	if (GeoAPI && setMeasurements())
+	{
+		BRC.geoAPI = GeoAPI;
 		BRC.getLatLongFromLocation = getLatLongFromLocation;
 		BRC.getLocationFromLatLong = getLocationFromLatLong;
 

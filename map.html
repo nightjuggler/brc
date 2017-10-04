@@ -34,7 +34,7 @@ input {
 <script src="brc.js"></script>
 <script>
 /* globals document, window */
-/* globals BRC, GeographicLib, google */
+/* globals BRC, google */
 "use strict";
 function isValidId(s, n)
 {
@@ -107,25 +107,32 @@ function parsePoint3(q, v)
 }
 function parseMapType(q, v)
 {
-	if (v === 'hybrid' || v === 'roadmap' || v === 'satellite' || v === 'terrain')
+	if (v === "hybrid" || v === "roadmap" || v === "satellite" || v === "terrain")
 		q.mapType = v;
+}
+function parseGeoAPI(q, v)
+{
+	v = v.toLowerCase();
+	if (v === "geographiclib" || v === "google" || v === "turf")
+		q.geoAPI = v;
 }
 function parseQueryString(queryString)
 {
 	var q = window.location.search;
 
-	if (typeof q !== 'string' || q.charAt(0) !== '?') return;
+	if (typeof q !== "string" || q.charAt(0) !== "?") return;
 
 	var flags = {
-		grid: 'drawGrid',
-		pentagon: 'drawPentagon',
+		grid: "drawGrid",
+		pentagon: "drawPentagon",
 	};
 	var handlers = {
 		azi: parseAzimuth,
 		azimuth: parseAzimuth,
-		man: parseManCenter,
-		loc: parseBRCLocation,
+		geoapi: parseGeoAPI,
 		ll: parseLatLng,
+		loc: parseBRCLocation,
+		man: parseManCenter,
 		p3: parsePoint3,
 		point3: parsePoint3,
 		t: parseMapType,
@@ -136,9 +143,9 @@ function parseQueryString(queryString)
 		zoom: parseZoom,
 	};
 
-	for (var s of q.substr(1).split('&'))
+	for (var s of q.substr(1).split("&"))
 	{
-		var i = s.indexOf('=');
+		var i = s.indexOf("=");
 		if (i < 0 && isValidId(s, 8) && flags[s]) {
 			queryString[flags[s]] = true;
 			continue;
@@ -166,38 +173,17 @@ function drawPentagon(map, m)
 		fillOpacity: 0,
 	});
 }
-function geoDirectGeographicLib(latLong)
-{
-	var geo = GeographicLib.Geodesic.WGS84;
-	var lat1 = latLong.latitude;
-	var lon1 = latLong.longitude;
-
-	return function(degrees, meters) {
-		var result = geo.Direct(lat1, lon1, degrees, meters);
-		return new google.maps.LatLng(result.lat2, result.lon2);
-	};
-}
-function geoDirectGoogleMaps(latLong)
-{
-	var geo = google.maps.geometry.spherical;
-	latLong = latLong.toGoogle();
-
-	return function(degrees, meters) {
-		return geo.computeOffset(latLong, meters, degrees);
-	};
-}
 function drawGrid(map, m)
 {
-	var geoDirect = geoDirectGeographicLib(m.ManCenter);
-//	var geoDirect = geoDirectGoogleMaps(m.ManCenter);
+	var geoDirect = BRC.geoAPI.getCustomDirect(m.ManCenter);
 
 	var getLL = function(degrees, meters) {
 		return geoDirect((degrees + m.TwelveOClockAzimuth) % 360, meters);
 	};
 
-	var streetColor = '#0000FF';
+	var streetColor = "#0000FF";
 	var streetWeight = 2;
-	var midBlockColor = '#FF0000';
+	var midBlockColor = "#FF0000";
 	var midBlockWeight = 1;
 
 	var llArray = [];
@@ -226,13 +212,13 @@ function drawGrid(map, m)
 			options.strokeColor = streetColor;
 			options.strokeWeight = streetWeight;
 		}
-		for (var degrees = 60; degrees < 300;)
+		for (let degrees = 60; degrees < 300;)
 		{
 			var angle = degrees > 180 ? 360 - degrees : degrees;
 			var inWide = m.inWideBlock(street, angle);
 			if (midBlock && (inWide || m.inWideBlock(street + 1, angle)))
 			{
-				var radialDegrees = i >= 14 ? 7.5 : 15;
+				let radialDegrees = i >= 14 ? 7.5 : 15;
 				degrees = radialDegrees * Math.floor(degrees / radialDegrees);
 				if (llArray.length > 0)
 				{
@@ -245,7 +231,7 @@ function drawGrid(map, m)
 			}
 			if (!midBlock && inWide !== inWideBefore)
 			{
-				var radialDegrees = i >= 14 ? 7.5 : 15;
+				let radialDegrees = i >= 14 ? 7.5 : 15;
 				degrees = radialDegrees * Math.floor(degrees / radialDegrees);
 				var lastPoint = getLL(degrees, meters);
 				if (llArray.length > 0)
@@ -284,7 +270,7 @@ function drawGrid(map, m)
 	options.strokeWeight = streetWeight;
 
 	var fromG = false;
-	for (var degrees = 60; degrees <= 300; degrees += 7.5)
+	for (let degrees = 60; degrees <= 300; degrees += 7.5)
 	{
 		llArray[0] = getLL(degrees, fromG ? metersG : meters0);
 		llArray[1] = getLL(degrees, metersL);
@@ -294,46 +280,48 @@ function drawGrid(map, m)
 }
 function init()
 {
-	BRC.init();
-
 	var queryString = {};
 	parseQueryString(queryString);
 
+	BRC.init(queryString.geoAPI);
+
 	var brcMeasurements = queryString.year && BRC.setMeasurements(queryString.year) || BRC.getMeasurements();
 
-	if (typeof queryString.azimuth === "number")
-	{
-		brcMeasurements = BRC.setMeasurements("custom");
-		brcMeasurements.TwelveOClockAzimuth = queryString.azimuth;
-	}
-	if (queryString.manCenter || queryString.point3 !== undefined)
+	var setAzimuth = typeof queryString.azimuth === "number";
+	var setManCenter = queryString.manCenter instanceof google.maps.LatLng;
+	var setPoint3 = queryString.point3 instanceof google.maps.LatLng;
+	var setPoint3Distance = typeof queryString.point3 === "number";
+
+	if (setAzimuth || setManCenter || setPoint3 || setPoint3Distance)
 	{
 		brcMeasurements = BRC.getMeasurements("custom");
+		brcMeasurements.Pentagon = [];
 
-		if (queryString.manCenter) {
-			var gll = queryString.manCenter;
-			var ll = brcMeasurements.ManCenter.copy();
+		if (setManCenter) {
+			let gll = queryString.manCenter;
+			let ll = brcMeasurements.ManCenter.copy();
 			ll.latitude = gll.lat();
 			ll.longitude = gll.lng();
 			brcMeasurements.ManCenter = ll;
 		}
-		brcMeasurements.Pentagon = [];
-
-		if (typeof queryString.point3 === "number")
-			brcMeasurements.Point3Distance = queryString.point3;
-		else if (queryString.point3) {
-			var gll = queryString.point3;
-			var ll = brcMeasurements.ManCenter.copy();
+		if (setPoint3) {
+			let gll = queryString.point3;
+			let ll = brcMeasurements.ManCenter.copy();
 			ll.latitude = gll.lat();
 			ll.longitude = gll.lng();
 			brcMeasurements.Pentagon.push(ll);
+		} else {
+			if (setAzimuth)
+				brcMeasurements.TwelveOClockAzimuth = queryString.azimuth;
+			if (setPoint3Distance)
+				brcMeasurements.Point3Distance = queryString.point3;
 		}
 
 		brcMeasurements = BRC.setMeasurements("custom");
 	}
 	if (queryString.location)
 	{
-		var ll = BRC.getLatLongFromLocation(queryString.location);
+		let ll = BRC.getLatLongFromLocation(queryString.location);
 		if (ll)
 			queryString.ll = ll.toGoogle();
 	}
@@ -356,10 +344,10 @@ function init()
 		icon: {
 			anchor: new google.maps.Point(14, 14),
 			size: new google.maps.Size(28, 28),
-			url: 'centerIcon.svg'
+			url: "centerIcon.svg",
 		},
 		map: map,
-		position: options.center
+		position: options.center,
 	});
 
 	function mapCenterChanged()
@@ -373,7 +361,7 @@ function init()
 		brcLoc.size = brcLoc.value.length > 20 ? 30 : 20;
 	}
 	mapCenterChanged();
-	map.addListener('center_changed', mapCenterChanged);
+	map.addListener("center_changed", mapCenterChanged);
 
 	if (queryString.drawGrid)
 		drawGrid(map, brcMeasurements);
