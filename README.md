@@ -29,9 +29,9 @@ See [https://nightjuggler.com/brc/map.html](https://nightjuggler.com/brc/map.htm
 
 By default, the map is initially centered at the Man,
 but the initial location can also be specified in the URL via the
-**loc** (Black Rock City-style address),
-**ll** (latitude,longitude), or
-**xy** (longitude,latitude) parameters.
+`loc` (Black Rock City-style address),
+`ll` (latitude,longitude), or
+`xy` (longitude,latitude) parameters.
 For example:
 
 * [https://nightjuggler.com/brc/map.html?ll=40.791657,-119.198162](https://nightjuggler.com/brc/map.html?ll=40.791657,-119.198162)
