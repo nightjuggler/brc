@@ -6,13 +6,13 @@ It defines a global `BRC` object.
 After `BRC.init()` is called, the following functions can be called:
 
 `BRC.getLatLongFromLocation()` takes a string parameter which is expected to be a Black Rock City-style address
-(for example, &quot;`2 &amp; Esplanade`&quot; or &quot;`11:45 &amp; 5400'`&quot;)
+(for example, `2 & Esplanade` or `11:45 & 5400ft`)
 and returns the corresponding latitude and longitude (in the form of an object with
-&quot;`latitude`&quot; and &quot;`longitude`&quot; properties).
+`latitude` and `longitude` properties).
 
 `BRC.getLocationFromLatLong()` takes a latitude and longitude
 (in the form of an object parameter which is expected to have
-&quot;`latitude`&quot; and &quot;`longitude`&quot; properties)
+`latitude` and `longitude` properties)
 and returns a Black Rock City-style address.
 
 By default, **brc.js** will try to use [GeographicLib](https://geographiclib.sourceforge.io/html/js/index.html)
