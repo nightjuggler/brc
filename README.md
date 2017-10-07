@@ -6,10 +6,13 @@ It defines a global `BRC` object.
 After `BRC.init()` is called, the following functions can be called:
 
 `BRC.getLatLongFromLocation()` takes a string parameter which is expected to be a Black Rock City-style address
-(for example, "2 &amp; Esplanade" or "11:45 &amp; 5400'") and returns the corresponding latitude and longitude.
+(for example, &quot;`2 &amp; Esplanade`&quot; or &quot;`11:45 &amp; 5400'`&quot;)
+and returns the corresponding latitude and longitude (in the form of an object with
+&quot;`latitude`&quot; and &quot;`longitude`&quot; properties).
 
 `BRC.getLocationFromLatLong()` takes a latitude and longitude
-(in the form of an object parameter which is expected to have "latitude" and "longitude" properties)
+(in the form of an object parameter which is expected to have
+&quot;`latitude`&quot; and &quot;`longitude`&quot; properties)
 and returns a Black Rock City-style address.
 
 By default, **brc.js** will try to use [GeographicLib](https://geographiclib.sourceforge.io/html/js/index.html)
@@ -24,7 +27,12 @@ or [Turf](http://turfjs.org/).
 
 See [https://nightjuggler.com/brc/map.html](https://nightjuggler.com/brc/map.html)
 
-The initial location can be specified in the URL. For example:
+By default, the map is initially centered at the Man,
+but the initial location can also be specified in the URL via the
+**loc** (Black Rock City-style address),
+**ll** (latitude,longitude), or
+**xy** (longitude,latitude) parameters.
+For example:
 
 * [https://nightjuggler.com/brc/map.html?ll=40.791657,-119.198162](https://nightjuggler.com/brc/map.html?ll=40.791657,-119.198162)
 * [https://nightjuggler.com/brc/map.html?loc=Temple](https://nightjuggler.com/brc/map.html?loc=Temple)
