@@ -1,8 +1,22 @@
 # brc.js
 
-A JavaScript library that uses [GeographicLib](https://geographiclib.sourceforge.io/html/js/index.html)
-to convert latitude and longitude to a Black Rock City (Burning Man) location (e.g. 2 &amp; Esplanade)
-and vice versa.
+A JavaScript geocoder for Black Rock City (Burning Man) addresses/locations.
+
+It defines a global `BRC` object.
+After `BRC.init()` is called, the following functions can be called:
+
+`BRC.getLatLongFromLocation()` takes a string parameter which is expected to be a Black Rock City-style address
+(for example, "2 &amp; Esplanade" or "11:45 &amp; 5400'") and returns the corresponding latitude and longitude.
+
+`BRC.getLocationFromLatLong()` takes a latitude and longitude
+(in the form of an object parameter which is expected to have "latitude" and "longitude" properties)
+and returns a Black Rock City-style address.
+
+By default, **brc.js** will try to use [GeographicLib](https://geographiclib.sourceforge.io/html/js/index.html)
+for computing geographical distances and angles,
+but it can also use (and fall back to) the Google Maps API
+([google.maps.geometry.spherical](https://developers.google.com/maps/documentation/javascript/reference#spherical))
+or [Turf](http://turfjs.org/).
 
 # map.html
 
@@ -10,7 +24,7 @@ and vice versa.
 
 See [https://nightjuggler.com/brc/map.html](https://nightjuggler.com/brc/map.html)
 
-The location can also be specified in the URL. For example:
+The initial location can be specified in the URL. For example:
 
 * [https://nightjuggler.com/brc/map.html?ll=40.791657,-119.198162](https://nightjuggler.com/brc/map.html?ll=40.791657,-119.198162)
 * [https://nightjuggler.com/brc/map.html?loc=Temple](https://nightjuggler.com/brc/map.html?loc=Temple)
@@ -23,15 +37,52 @@ The location can also be specified in the URL. For example:
 
 You can also specify the following:
 
-* the year (2013-2017)
-* the zoom level
-* the map type ("hybrid", "roadmap", "satellite", or "terrain")
-* whether to draw the perimeter pentagon
-* whether to draw the city grid
-* the latitude and longitude for the Man
-* the 12 o'clock azimuth (in degrees clockwise from North)
-* the distance from the Man to pentagon point 3 (in feet, meters, kilometers, or miles)
-* the latitude and longitude for point 3 (overriding the azimuth and distance)
+<table>
+<tr>
+<td>URL parameter</td>
+<td>Description</td>
+</tr>
+<tr>
+<td><b>y</b> or <b>year</b></td>
+<td>the year (2013-2017)</td>
+</tr>
+<tr>
+<td><b>z</b> or <b>zoom</b></td>
+<td>the zoom level</td>
+</tr>
+<tr>
+<td><b>t</b></td>
+<td>the map type ("hybrid", "roadmap", "satellite", or "terrain")</td>
+</tr>
+<tr>
+<td><b>pentagon</b></td>
+<td>whether to draw the perimeter pentagon</td>
+</tr>
+<tr>
+<td><b>grid</b></td>
+<td>whether to draw the city grid</td>
+</tr>
+<tr>
+<td><b>man</b></td>
+<td>the latitude and longitude for the Man</td>
+</tr>
+<tr>
+<td><b>azi</b> or <b>azimuth</b></td>
+<td>the 12 o'clock azimuth (in degrees clockwise from North)</td>
+</tr>
+<tr>
+<td><b>p3</b> or <b>point3</b></td>
+<td>the distance from the Man to pentagon point 3 (in feet, meters, kilometers, or miles)</td>
+</tr>
+<tr>
+<td><b>p3</b> or <b>point3</b></td>
+<td>the latitude and longitude for point 3 (overriding the azimuth and distance)</td>
+</tr>
+<tr>
+<td><b>geoapi</b></td>
+<td>the preferred API for computing geographical distances and angles ("geographiclib", "google", or "turf")</td>
+</tr>
+</table>
 
 For example:
 
