@@ -371,8 +371,8 @@ function getLatLongFromLocation(location)
 
 	return GeoAPI.Direct(degrees, feet * 0.3048);
 }
-var GeoAPIMap = {
-"geographiclib": function()
+const GeoAPIMap = new Map([
+["geographiclib", function()
 {
 	var geo = GeographicLib && GeographicLib.Geodesic.WGS84;
 	if (!geo) return null;
@@ -412,8 +412,8 @@ var GeoAPIMap = {
 		},
 		name: "GeographicLib",
 	};
-},
-"google": function()
+}],
+["google", function()
 {
 	var geo = google && google.maps && google.maps.geometry && google.maps.geometry.spherical;
 	if (!geo) return null;
@@ -447,11 +447,9 @@ var GeoAPIMap = {
 		},
 		getPolygonArea: function(latLongArray)
 		{
-			var llArray = [];
-			for (let ll of latLongArray)
-				llArray.push(ll.toGoogle());
+			const llArray = Array.from(latLongArray, ll => ll.toGoogle());
 
-			var result = {};
+			const result = {};
 			result.area = geo.computeArea(llArray);
 
 			llArray.push(llArray[0]);
@@ -461,8 +459,8 @@ var GeoAPIMap = {
 		},
 		name: "Google Maps",
 	};
-},
-"turf": function()
+}],
+["turf", function()
 {
 	if (!turf) return null;
 
@@ -498,12 +496,10 @@ var GeoAPIMap = {
 		},
 		getPolygonArea: function(latLongArray)
 		{
-			var llArray = [];
-			for (let ll of latLongArray)
-				llArray.push([ll.longitude, ll.latitude]);
+			const llArray = Array.from(latLongArray, ll => [ll.longitude, ll.latitude]);
 			llArray.push(llArray[0]);
 
-			var polygon = turf.polygon([llArray]);
+			const polygon = turf.polygon([llArray]);
 			return {
 				area: turf.area(polygon),
 				perimeter: turf.lineDistance(polygon, "meters"),
@@ -511,24 +507,21 @@ var GeoAPIMap = {
 		},
 		name: "Turf",
 	};
-},
-};
+}],
+]);
 function getGeoAPI(api)
 {
-	if (api) {
-		let fn = GeoAPIMap[api];
-		return fn && fn();
-	}
-	return GeoAPI;
+	if (!api) return GeoAPI;
+
+	const fn = GeoAPIMap.get(api);
+	return fn && fn();
 }
 BRC.init = function(preferredGeoAPI)
 {
-	for (let api of [preferredGeoAPI, "geographiclib", "google", "turf"])
-	{
-		let fn = GeoAPIMap[api];
-		if (typeof fn === "function" && (GeoAPI = fn()))
-			break;
-	}
+	GeoAPI = preferredGeoAPI && getGeoAPI(preferredGeoAPI) ||
+		getGeoAPI("geographiclib") ||
+		getGeoAPI("google") ||
+		getGeoAPI("turf");
 	if (GeoAPI && setMeasurements())
 	{
 		BRC.getGeoAPI = getGeoAPI;
