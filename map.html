@@ -23,12 +23,12 @@ input {
 #brcLoc {
 	position: absolute;
 	bottom: 54px;
-	right: 48px;
+	right: 54px;
 }
 #llText {
 	position: absolute;
 	bottom: 24px;
-	right: 48px;
+	right: 54px;
 }
 </style>
 <script src="geographiclib.js"></script>
@@ -37,14 +37,9 @@ input {
 /* globals document, window */
 /* globals BRC, google */
 "use strict";
-function isValidId(s, n)
-{
-	return s.length <= n && s.match(/^[a-z][_0-9a-z]*$/) !== null;
-}
 function parseLL(q, v, latIndex, lngIndex)
 {
 	var m = v.match(/^(-?[0-9]{1,3}(?:\.[0-9]{1,8})?),(-?[0-9]{1,3}(?:\.[0-9]{1,8})?)$/);
-
 	if (m === null) return;
 
 	var lat = parseFloat(m[latIndex]);
@@ -59,7 +54,7 @@ function parseLatLng(q, v) { parseLL(q, v, 1, 2); }
 function parseLngLat(q, v) { parseLL(q, v, 2, 1); }
 function parseZoom(q, v)
 {
-	if (v.match(/^[1-9][0-9]?$/) === null) return;
+	if (!/^[1-9][0-9]?$/.test(v)) return;
 
 	var zoom = parseInt(v, 10);
 	if (zoom < 1 || zoom > 22) return;
@@ -68,7 +63,7 @@ function parseZoom(q, v)
 }
 function parseYear(q, v)
 {
-	if (v.match(/^20[0-9][0-9]$/) === null) return;
+	if (!/^20[0-9][0-9]$/.test(v)) return;
 
 	q.year = v;
 }
@@ -78,7 +73,7 @@ function parseBRCLocation(q, v)
 }
 function parseAzimuth(q, v)
 {
-	if (v.match(/^-?[0-9]{1,3}(?:\.[0-9]{1,8})?$/) === null) return;
+	if (!/^-?[0-9]{1,3}(?:\.[0-9]{1,8})?$/.test(v)) return;
 
 	v = parseFloat(v);
 	if (v < -180 || v > 360) return;
@@ -119,15 +114,15 @@ function parseGeoAPI(q, v)
 }
 function parseQueryString(queryString)
 {
-	var q = window.location.search;
+	const q = window.location.search;
 
 	if (typeof q !== "string" || q.charAt(0) !== "?") return;
 
-	var flags = {
+	const flags = {
 		grid: "drawGrid",
 		pentagon: "drawPentagon",
 	};
-	var handlers = {
+	const handlers = {
 		azi: parseAzimuth,
 		azimuth: parseAzimuth,
 		geoapi: parseGeoAPI,
@@ -144,26 +139,26 @@ function parseQueryString(queryString)
 		zoom: parseZoom,
 	};
 
-	for (var s of q.substr(1).split("&"))
+	const validKey = (key, len) => key.length <= len && /^[a-z][0-9a-z]*$/.test(key);
+
+	for (const s of q.substring(1).split("&"))
 	{
-		var i = s.indexOf("=");
-		if (i < 0 && isValidId(s, 8) && flags[s]) {
+		const i = s.indexOf("=");
+		if (i < 0 && validKey(s, 8) && flags.hasOwnProperty(s)) {
 			queryString[flags[s]] = true;
 			continue;
 		}
 		if (i < 1 || i === s.length - 1) continue;
-		var k = s.substr(0, i);
-		var v = s.substr(i + 1);
+		const k = s.substring(0, i);
+		const v = s.substring(i + 1);
 
-		if (isValidId(k, 8) && handlers[k])
+		if (validKey(k, 8) && handlers.hasOwnProperty(k))
 			handlers[k](queryString, v);
 	}
 }
 function drawPentagon(map, m)
 {
-	var llArray = [];
-	for (var ll of m.Pentagon)
-		llArray.push(ll.toGoogle());
+	const llArray = Array.from(m.Pentagon, ll => ll.toGoogle());
 
 	new google.maps.Polygon({
 		map: map,
