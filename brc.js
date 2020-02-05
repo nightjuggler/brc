@@ -464,20 +464,21 @@ const GeoAPIMap = new Map([
 {
 	if (!turf) return null;
 
+	const options = {units: "meters"};
+
 	var manCenter;
 	return {
 		Direct: function(degrees, meters)
 		{
-			var ll = turf.destination(manCenter, meters, degrees, "meters");
-			ll = turf.getCoord(ll);
+			const ll = turf.getCoord(turf.destination(manCenter, meters, degrees, options));
 			return new LatLong(ll[1], ll[0]);
 		},
 		Inverse: function(latLong)
 		{
-			var ll = latLong.toTurf();
+			const ll = latLong.toTurf();
 			return {
 				azi1: turf.bearing(manCenter, ll),
-				s12: turf.distance(manCenter, ll, "meters"),
+				s12: turf.distance(manCenter, ll, options),
 			};
 		},
 		setManCenter: function(latLong)
@@ -489,8 +490,7 @@ const GeoAPIMap = new Map([
 			latLong = latLong.toTurf();
 
 			return function(degrees, meters) {
-				var ll = turf.destination(latLong, meters, degrees, "meters");
-				ll = turf.getCoord(ll);
+				const ll = turf.getCoord(turf.destination(latLong, meters, degrees, options));
 				return new google.maps.LatLng(ll[1], ll[0]);
 			};
 		},
@@ -502,7 +502,7 @@ const GeoAPIMap = new Map([
 			const polygon = turf.polygon([llArray]);
 			return {
 				area: turf.area(polygon),
-				perimeter: turf.lineDistance(polygon, "meters"),
+				perimeter: turf.length(polygon, options),
 			};
 		},
 		name: "Turf",
