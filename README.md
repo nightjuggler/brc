@@ -18,8 +18,8 @@ and returns a Black Rock City-style address.
 By default, **brc.js** will try to use [GeographicLib](https://geographiclib.sourceforge.io/html/js/index.html)
 for computing geographical distances and angles,
 but it can also use (and fall back to) the Google Maps API
-([google.maps.geometry.spherical](https://developers.google.com/maps/documentation/javascript/reference#spherical))
-or [Turf](http://turfjs.org/).
+([google.maps.geometry.spherical](https://developers.google.com/maps/documentation/javascript/reference/geometry#spherical))
+or [Turf](https://github.com/Turfjs/turf).
 
 # map.html
 
