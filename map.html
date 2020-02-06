@@ -158,7 +158,7 @@ function parseQueryString(queryString)
 }
 function drawPentagon(map, m)
 {
-	const llArray = Array.from(m.Pentagon, ll => ll.toGoogle());
+	const llArray = m.Pentagon.map(ll => ll.toGoogle());
 
 	new google.maps.Polygon({
 		map: map,

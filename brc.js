@@ -447,7 +447,7 @@ const GeoAPIMap = new Map([
 		},
 		getPolygonArea: function(latLongArray)
 		{
-			const llArray = Array.from(latLongArray, ll => ll.toGoogle());
+			const llArray = latLongArray.map(ll => ll.toGoogle());
 
 			const result = {};
 			result.area = geo.computeArea(llArray);
@@ -496,7 +496,7 @@ const GeoAPIMap = new Map([
 		},
 		getPolygonArea: function(latLongArray)
 		{
-			const llArray = Array.from(latLongArray, ll => [ll.longitude, ll.latitude]);
+			const llArray = latLongArray.map(ll => [ll.longitude, ll.latitude]);
 			llArray.push(llArray[0]);
 
 			const polygon = turf.polygon([llArray]);
