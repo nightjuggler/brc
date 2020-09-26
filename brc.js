@@ -67,8 +67,8 @@ var MeasurementsByYear = {
 			// F @ 2:00-2:30 (9:30-10:00) and 3:30-4:00 (8:00-8:30)
 			// E @ 5:00-6:00 (6:00-7:00)
 
-			return street === 5 && (angle < 75 || angle > 105 && angle < 120)
-				|| street === 4 && angle > 150;
+			return street === 5 && (angle < 75 || angle > 105 && angle < 120) ||
+				street === 4 && angle > 150;
 		},
 
 		ManCenter: new LatLong(40.78699,-119.20433),
@@ -225,14 +225,15 @@ function setMeasurements(year)
 	if (year === undefined)
 		year = DefaultYear;
 
-	var m = getMeasurements(year);
+	const m = getMeasurements(year);
 
 	if (!(m instanceof Object))
 		return null;
 
 	GeoAPI.setManCenter(m.ManCenter);
 
-	return (Measurements = m);
+	Measurements = m;
+	return m;
 }
 function getTimeForAngle(degrees, precision)
 {
@@ -248,8 +249,8 @@ function getTimeForAngle(degrees, precision)
 	if (precision > 0)
 		s = s.replace(/\.?0+$/, "");
 
-	seconds = seconds < 10 ? (seconds === 0 ? "" : ":0" + s) : ":" + s;
-	minutes = minutes < 10 ? (minutes === 0 ? ":00" : ":0" + minutes) : ":" + minutes;
+	seconds = seconds < 10 ? seconds === 0 ? "" : ":0" + s : ":" + s;
+	minutes = minutes < 10 ? minutes === 0 ? ":00" : ":0" + minutes : ":" + minutes;
 
 	return t + minutes + seconds;
 }
